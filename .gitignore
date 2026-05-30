@@ -1,0 +1,15 @@
+# 빌드 결과물 (배포 대상이지만 소스에서 재생성 가능하므로 커밋하지 않음)
+/dist/
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

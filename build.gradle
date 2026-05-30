@@ -1,0 +1,40 @@
+// WhatDevice 정적 사이트 빌드 스크립트 (Gradle)
+// `./gradlew run` 한 번으로 data/ + templates/ + static/ 을 읽어 dist/ 전체를 생성한다.
+// 서버가 아니라 "빌드 도구"다. 결과물(dist/)은 정적 호스팅에 그대로 올린다.
+
+plugins {
+    id 'application'
+}
+
+// Java 21 (사용자 환경이 다르면 이 숫자만 바꾸면 된다. 예: 17)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JSON 파싱용 Jackson. 그 외 의존성은 최소화(표준 라이브러리 사용).
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+}
+
+application {
+    // 빌드 진입점
+    mainClass = 'com.whatdevice.BuildSite'
+}
+
+// 결과물 디렉토리를 깔끔히 비우는 보조 태스크
+tasks.register('cleanDist', Delete) {
+    delete file('dist')
+}
+
+// run 실행 전 dist 비우기(증분 잔여물 방지). 끄고 싶으면 이 줄을 주석 처리.
+tasks.named('run') {
+    dependsOn 'cleanDist'
+    // 프로젝트 루트를 작업 디렉토리로 고정(데이터/템플릿 상대경로 기준)
+    workingDir = projectDir
+}
