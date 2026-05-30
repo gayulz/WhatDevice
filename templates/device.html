@@ -1,0 +1,46 @@
+    <nav class="breadcrumb" aria-label="위치">
+      <a href="{{BASE}}index.html">홈</a>
+      <span class="sep">›</span>
+      <span>{{CATEGORY}}</span>
+      <span class="sep">›</span>
+      <span><code class="mono">{{IDENTIFIER}}</code></span>
+    </nav>
+
+    <article class="device">
+      <h1><code class="mono">{{IDENTIFIER}}</code> <span class="dash">—</span> {{NAME}}</h1>
+
+      <dl class="device-meta">
+        <dt>식별자 (모델 코드)</dt>
+        <dd><code class="mono copyable">{{IDENTIFIER}}</code></dd>
+        <dt>기종명</dt>
+        <dd>{{NAME}}</dd>
+        <dt>한글 표기 <span class="muted">(참고)</span></dt>
+        <dd>{{KOREAN}}</dd>
+        <dt>카테고리</dt>
+        <dd>{{CATEGORY}}</dd>
+        <dt>URL 슬러그</dt>
+        <dd><code class="mono">{{SLUG}}</code></dd>
+      </dl>
+
+      <div class="ad-slot" aria-hidden="true"><!-- AdSense placeholder: 승인 후 광고 코드 삽입 --></div>
+
+      <section class="related">
+        <h2>같은 식별자 계열 <span class="muted">({{FAMILY}})</span></h2>
+        <ul class="related-list">
+{{RELATED}}
+        </ul>
+      </section>
+
+      <section class="faq">
+        <h2>자주 묻는 질문</h2>
+        <h3>{{IDENTIFIER}}가 무슨 기종인가요?</h3>
+        <p><code class="mono">{{IDENTIFIER}}</code>는 <strong>{{NAME}}</strong>의 애플 내부 모델 식별자(머신 코드)입니다.
+           앱 크래시 로그, 애널리틱스, 일부 진단 화면 등에서 기종명 대신 이 식별자가 표시됩니다.</p>
+        <h3>이 식별자는 어디서 확인할 수 있나요?</h3>
+        <p>크래시 리포트의 기기 정보 필드, 모바일 애널리틱스의 디바이스 모델 항목, 또는
+           <code class="mono">uname</code> / <code class="mono">sysctl hw.machine</code> 계열 시스템 정보에서 볼 수 있습니다.
+           자세한 방법은 <a href="{{BASE}}guide/find-from-logs.html">로그에서 기기 모델 확인하는 법</a> 가이드를 참고하세요.</p>
+      </section>
+
+      <p class="back"><a href="{{BASE}}index.html">← 다른 기기 검색하기</a></p>
+    </article>
