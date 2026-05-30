@@ -1,0 +1,30 @@
+{
+  "_comment": "clo4 원본에 누락된 최신 기기 보강 데이터. 형식은 devices.json과 동일(기종명 -> 식별자). 출처/근거는 DECISIONS.md 참고. override가 원본보다 우선한다.",
+
+  "iPhone 16": "iPhone17,3",
+  "iPhone 16 Plus": "iPhone17,4",
+  "iPhone 16 Pro": "iPhone17,1",
+  "iPhone 16 Pro Max": "iPhone17,2",
+  "iPhone 16e": "iPhone17,5",
+  "iPhone 17": "iPhone18,3",
+  "iPhone 17 Pro": "iPhone18,1",
+  "iPhone 17 Pro Max": "iPhone18,2",
+  "iPhone Air": "iPhone18,4",
+
+  "iPad mini (A17 Pro, 2024) Wi-Fi": "iPad16,1",
+  "iPad mini (A17 Pro, 2024) Wi-Fi + Cellular": "iPad16,2",
+  "iPad Air 11-inch (M2, 2024) Wi-Fi": "iPad14,8",
+  "iPad Air 11-inch (M2, 2024) Wi-Fi + Cellular": "iPad14,9",
+  "iPad Air 13-inch (M2, 2024) Wi-Fi": "iPad14,10",
+  "iPad Air 13-inch (M2, 2024) Wi-Fi + Cellular": "iPad14,11",
+  "iPad Pro 11-inch (M4, 2024) Wi-Fi": "iPad16,3",
+  "iPad Pro 11-inch (M4, 2024) Wi-Fi + Cellular": "iPad16,4",
+  "iPad Pro 13-inch (M4, 2024) Wi-Fi": "iPad16,5",
+  "iPad Pro 13-inch (M4, 2024) Wi-Fi + Cellular": "iPad16,6",
+  "iPad (A16, 11th generation, 2025) Wi-Fi": "iPad15,7",
+  "iPad (A16, 11th generation, 2025) Wi-Fi + Cellular": "iPad15,8",
+  "iPad Air 11-inch (M3, 2025) Wi-Fi": "iPad15,3",
+  "iPad Air 11-inch (M3, 2025) Wi-Fi + Cellular": "iPad15,4",
+  "iPad Air 13-inch (M3, 2025) Wi-Fi": "iPad15,5",
+  "iPad Air 13-inch (M3, 2025) Wi-Fi + Cellular": "iPad15,6"
+}
