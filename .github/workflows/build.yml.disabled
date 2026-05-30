@@ -1,0 +1,62 @@
+# ⚠️ 비활성 초안 (DISABLED DRAFT)
+# 이 파일은 확장자가 `.yml.disabled` 이므로 GitHub Actions가 실행하지 않습니다.
+# 사용하려면: (1) 파일명을 `build.yml` 로 변경하고
+#             (2) 아래 `on:` 블록의 주석을 해제해 트리거를 켜세요.
+# 기능: main 푸시 시 사이트를 빌드해 dist/ 를 GitHub Pages로 배포.
+# 추가로 데이터 자동 동기화(clo4 원본 재다운로드)를 원하면 fetch 단계의 주석을 해제하세요.
+
+name: Build & Deploy (draft, disabled)
+
+# on:
+#   push:
+#     branches: [ main ]
+#   workflow_dispatch:
+#   # 데이터 주기 동기화 예시 (매주 월요일 03:00 UTC)
+#   # schedule:
+#   #   - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # (선택) clo4 원본을 최신으로 동기화하려면 주석 해제
+      # - name: Sync devices.json (optional)
+      #   run: curl -sSL https://raw.githubusercontent.com/clo4/apple_device_identifiers/main/devices.json -o data/devices.json
+
+      - name: Build site
+        run: |
+          gradle wrapper --gradle-version 8.10.2
+          ./gradlew run --no-daemon
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
