@@ -6,10 +6,10 @@ plugins {
     id 'application'
 }
 
-// Java 21 (사용자 환경이 다르면 이 숫자만 바꾸면 된다. 예: 17)
+// Java 17 (시스템에 설치된 Temurin 17 사용. 더 높은 버전을 쓰려면 이 숫자만 변경.)
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 

@@ -40,7 +40,7 @@ public class BuildSite {
      * 배포 도메인(절대 URL). sitemap·canonical·OG 에 쓰인다.
      * 실제 배포 주소가 정해지면 이 값만 교체하면 된다. 끝에 슬래시 없이.
      */
-    static final String SITE_URL = "https://YOUR-USERNAME.github.io/whatdevice";
+    static final String SITE_URL = "https://gayulz.github.io/WhatDevice";
     /** 문의 이메일 (지시서 2번 항목 5번 확정값). */
     static final String CONTACT_EMAIL = "gayulz@kakao.com";
     /** 면책 문구 (누락 금지). */
