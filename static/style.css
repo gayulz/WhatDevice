@@ -202,17 +202,26 @@ h3 { font-size: 1.02rem; margin-top: 20px; }
 .content th, .content td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; font-size: .92rem; }
 .content th { background: var(--bg-soft); }
 
-/* ===== 광고 placeholder ===== */
+/* ===== 광고 영역 (카카오 애드핏) =====
+   PC(728x90)와 모바일(320x100) <ins>를 둘 다 박고 미디어 쿼리로 토글한다.
+   카카오 SDK가 inline display:none 을 display:block 으로 바꾸므로,
+   비활성 쪽은 !important 로 숨겨야 SDK 동작을 이긴다. */
 .ad-slot {
-  min-height: 90px;
-  margin: 24px 0;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 24px auto;
+  text-align: center;
+  min-height: 100px; /* 모바일 기준 (CLS 방지) */
 }
-.ad-slot::after { content: "광고 영역 (placeholder)"; color: var(--text-muted); font-size: .8rem; }
+.ad-slot .kakao_ad_area { margin: 0 auto; }
+
+/* 모바일(<768px): PC 광고 숨김, 모바일 광고 노출 */
+@media (max-width: 767px) {
+  .ad-slot .ad-pc { display: none !important; }
+}
+/* 데스크톱(>=768px): 모바일 광고 숨김, PC 광고 노출, 높이 PC 기준 */
+@media (min-width: 768px) {
+  .ad-slot { min-height: 90px; }
+  .ad-slot .ad-mobile { display: none !important; }
+}
 
 /* ===== 푸터 ===== */
 .site-footer {

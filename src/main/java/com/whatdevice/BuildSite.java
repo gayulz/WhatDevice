@@ -46,6 +46,27 @@ public class BuildSite {
     /** 면책 문구 (누락 금지). */
     static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: clo4/apple_device_identifiers";
 
+    /** 카카오 애드핏 PC 광고 단위 (728x90 leaderboard). */
+    static final String ADFIT_UNIT_PC = "DAN-iE1zbQKstH7OpKgG";
+    /** 카카오 애드핏 모바일 광고 단위 (320x100). */
+    static final String ADFIT_UNIT_MOBILE = "DAN-Vx7eTegLs1VGrrwp";
+
+    /**
+     * 광고 슬롯 마크업을 만든다. PC/모바일 단위를 둘 다 박고 CSS 미디어 쿼리로 토글한다.
+     * 카카오 SDK(layout.html 의 ba.min.js)가 페이지 내 모든 .kakao_ad_area 를 자동 스캔한다.
+     */
+    static String adSlotHtml() {
+        return ""
+            + "<div class=\"ad-slot\" aria-hidden=\"true\">\n"
+            + "  <ins class=\"kakao_ad_area ad-pc\" style=\"display:none;\"\n"
+            + "       data-ad-unit=\"" + ADFIT_UNIT_PC + "\"\n"
+            + "       data-ad-width=\"728\" data-ad-height=\"90\"></ins>\n"
+            + "  <ins class=\"kakao_ad_area ad-mobile\" style=\"display:none;\"\n"
+            + "       data-ad-unit=\"" + ADFIT_UNIT_MOBILE + "\"\n"
+            + "       data-ad-width=\"320\" data-ad-height=\"100\"></ins>\n"
+            + "</div>\n";
+    }
+
     /**
      * 사이트에 포함할 기기 카테고리(=식별자 접두어). 여기에 "iPod","Watch","Mac" 등을
      * 추가하면 범위가 바로 넓어진다. (지시서: 카테고리 토글로 확장 가능하게 설계)
@@ -383,7 +404,7 @@ public class BuildSite {
             "  </div>\n" +
             "  <p class=\"count muted\">현재 " + (iphone + ipad) + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + ")</p>\n" +
             "</section>\n" +
-            "<div class=\"ad-slot\" aria-hidden=\"true\"><!-- AdSense placeholder: 승인 후 광고 코드 삽입 --></div>\n" +
+            adSlotHtml() +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n";
 
         String title = SITE_NAME + " — 애플 기기 식별자 변환기";
@@ -425,6 +446,10 @@ public class BuildSite {
                     .replace("{{BASE}}", p[1])
                     .replace("{{EMAIL}}", CONTACT_EMAIL)
                     .replace("{{SITE_NAME}}", SITE_NAME);
+            // 가이드 페이지에만 본문 끝에 광고 슬롯 추가 (정책 페이지는 광고 미노출 — 신뢰도 보호)
+            if (p[0].startsWith("guide/")) {
+                body = body + "\n" + adSlotHtml();
+            }
             String title = p[2] + " | " + SITE_NAME;
             String canonical = SITE_URL + "/" + p[0];
             String html = renderLayout(layout, p[1], title, p[3], canonical, body, "");
