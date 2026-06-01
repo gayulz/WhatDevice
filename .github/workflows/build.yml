@@ -1,19 +1,16 @@
-# ⚠️ 비활성 초안 (DISABLED DRAFT)
-# 이 파일은 확장자가 `.yml.disabled` 이므로 GitHub Actions가 실행하지 않습니다.
-# 사용하려면: (1) 파일명을 `build.yml` 로 변경하고
-#             (2) 아래 `on:` 블록의 주석을 해제해 트리거를 켜세요.
-# 기능: main 푸시 시 사이트를 빌드해 dist/ 를 GitHub Pages로 배포.
-# 추가로 데이터 자동 동기화(clo4 원본 재다운로드)를 원하면 fetch 단계의 주석을 해제하세요.
+# GitHub Pages 자동 배포 워크플로
+# main 브랜치 push 시 BuildSite를 실행하여 dist/를 생성하고 Pages에 배포한다.
+# 데이터 자동 동기화(clo4 원본 재다운로드)가 필요하면 fetch 단계의 주석을 해제하면 된다.
 
-name: Build & Deploy (draft, disabled)
+name: Build & Deploy
 
-# on:
-#   push:
-#     branches: [ main ]
-#   workflow_dispatch:
-#   # 데이터 주기 동기화 예시 (매주 월요일 03:00 UTC)
-#   # schedule:
-#   #   - cron: '0 3 * * 1'
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  # 데이터 주기 동기화 예시 (매주 월요일 03:00 UTC)
+  # schedule:
+  #   - cron: '0 3 * * 1'
 
 permissions:
   contents: read
@@ -30,11 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
       # (선택) clo4 원본을 최신으로 동기화하려면 주석 해제
       # - name: Sync devices.json (optional)
