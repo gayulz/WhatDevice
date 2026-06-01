@@ -44,7 +44,7 @@ public class BuildSite {
     /** 문의 이메일 (지시서 2번 항목 5번 확정값). */
     static final String CONTACT_EMAIL = "gayulz@kakao.com";
     /** 면책 문구 (누락 금지). */
-    static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: clo4/apple_device_identifiers";
+    static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717)";
 
     /** 카카오 애드핏 PC 광고 단위 (728x90 leaderboard). */
     static final String ADFIT_UNIT_PC = "DAN-iE1zbQKstH7OpKgG";
@@ -71,7 +71,7 @@ public class BuildSite {
      * 사이트에 포함할 기기 카테고리(=식별자 접두어). 여기에 "iPod","Watch","Mac" 등을
      * 추가하면 범위가 바로 넓어진다. (지시서: 카테고리 토글로 확장 가능하게 설계)
      */
-    static final List<String> CATEGORIES = List.of("iPhone", "iPad");
+    static final List<String> CATEGORIES = List.of("iPhone", "iPad", "Watch", "iPod", "Simulator");
 
     // 입출력 경로 (프로젝트 루트 기준 상대경로 — build.gradle 에서 workingDir 를 루트로 고정)
     static final Path DATA = Paths.get("data");
@@ -154,9 +154,35 @@ public class BuildSite {
      * override 값이 원본보다 우선한다. "_" 로 시작하는 키(주석용)는 무시한다.
      */
     static Map<String, String> loadMergedData(ObjectMapper mapper) throws IOException {
+        // SPEC-DATA-001: adamawolf/3048717 gist를 단일 권위 출처로 사용.
+        // 형식: 각 라인 "{identifier} : {name}" — 콜론 양쪽에 공백.
+        // 기존 BuildSite는 Map<name, identifier> 형식을 기대하므로 동일하게 반환.
         Map<String, String> merged = new LinkedHashMap<>();
-        readJsonStringMap(mapper, DATA.resolve("devices.json"), merged);
-        readJsonStringMap(mapper, DATA.resolve("overrides.json"), merged); // 나중에 넣어 override 우선
+        Path file = DATA.resolve("devices.txt");
+        if (!Files.exists(file)) {
+            throw new IOException("필수 데이터 파일 없음: " + file.toAbsolutePath());
+        }
+        for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;
+            }
+            int idx = trimmed.indexOf(" : ");
+            if (idx < 0) {
+                continue; // 형식이 깨진 라인은 건너뜀
+            }
+            String identifier = trimmed.substring(0, idx).trim();
+            String name = trimmed.substring(idx + 3).trim();
+            if (identifier.isEmpty() || name.isEmpty()) {
+                continue;
+            }
+            // 기존 호출자(buildDevices)는 entry.getKey()를 name, entry.getValue()를 identifier로 사용.
+            // 동일 이름이 여러 식별자에 대응하므로(예: iPhone Simulator 3개) Map 키를 식별자로 두면 안 됨.
+            // 키 충돌 방지를 위해 식별자를 키로 두는 대신 name+" "+identifier 같은 합성 키 사용 가능하지만,
+            // buildDevices는 entrySet 순회만 하므로 LinkedHashMap에 동일 이름을 안전하게 적재하려면
+            // 식별자를 키로 사용한다(고유). 대신 buildDevices에서 key=identifier, value=name 으로 해석하도록 수정.
+            merged.put(identifier, name);
+        }
         return merged;
     }
 
@@ -182,12 +208,15 @@ public class BuildSite {
 
     // ===================== 2. 기기 목록 가공 =====================
 
-    /** 병합 데이터에서 범위에 맞는 기기만 골라 Device 리스트를 만든다(정렬 포함). */
+    /**
+     * 병합 데이터에서 범위에 맞는 기기만 골라 Device 리스트를 만든다(정렬 포함).
+     * SPEC-DATA-001: gist 파서가 Map<identifier, name>을 반환하므로 키·값 해석을 식별자·이름으로 통일.
+     */
     static List<Device> buildDevices(Map<String, String> merged) {
         List<Device> list = new ArrayList<>();
         for (Map.Entry<String, String> e : merged.entrySet()) {
-            String name = e.getKey();
-            String identifier = e.getValue();
+            String identifier = e.getKey();
+            String name = e.getValue();
             if (!inScope(identifier)) {
                 continue;
             }
@@ -207,9 +236,18 @@ public class BuildSite {
         return categoryOf(identifier) != null;
     }
 
-    /** 식별자의 카테고리(접두어)를 돌려준다. 범위 밖이면 null. */
+    /**
+     * 식별자의 카테고리(접두어)를 돌려준다. 범위 밖이면 null.
+     * SPEC-DATA-001: i386/x86_64/arm64 는 접두어 매칭 불가 → Simulator 카테고리로 명시 분기.
+     */
     static String categoryOf(String identifier) {
+        if (identifier.equals("i386") || identifier.equals("x86_64") || identifier.equals("arm64")) {
+            return "Simulator";
+        }
         for (String c : CATEGORIES) {
+            if (c.equals("Simulator")) {
+                continue; // 위 명시 분기에서 처리됨
+            }
             if (identifier.startsWith(c)) {
                 return c;
             }
@@ -233,9 +271,18 @@ public class BuildSite {
 
     // 영문 토큰 → 한글 표기 (검색·참고용 자동 생성. 완벽 번역이 아니라 best-effort)
     private static final String[][] KO_TOKENS = {
+            // SPEC-DATA-001: 긴 토큰 먼저 매칭 (Apple Watch가 Watch보다 우선, iPod touch가 iPod보다 우선).
+            {"Apple Watch", "애플 워치"},
+            {"iPod touch", "아이팟 터치"},
+            {"iPhone Simulator", "아이폰 시뮬레이터"},
+            {"Pro Max", "프로 맥스"},
+            // 기본 카테고리
             {"iPhone", "아이폰"},
             {"iPad", "아이패드"},
-            {"Pro Max", "프로 맥스"},
+            {"iPod", "아이팟"},
+            {"Watch", "워치"},
+            {"Simulator", "시뮬레이터"},
+            // 모델 수식어
             {"Pro", "프로"},
             {"Plus", "플러스"},
             {"Max", "맥스"},
@@ -243,10 +290,13 @@ public class BuildSite {
             {"Mini", "미니"},
             {"Air", "에어"},
             {"Ultra", "울트라"},
+            {"Series", "시리즈"},
+            // 일반 토큰
             {"inch", "인치"},
             {"generation", "세대"},
             {"Wi-Fi", "와이파이"},
             {"Cellular", "셀룰러"},
+            {"case", "케이스"},
     };
 
     /** 기종명을 한글 표기로 치환(부분 일치 토큰 교체). 숫자/괄호 등은 그대로 둔다. */
@@ -391,8 +441,13 @@ public class BuildSite {
 
     /** 메인(검색) 페이지 생성. */
     static void generateIndex(List<Device> devices, String layout) throws IOException {
+        // SPEC-DATA-001: 5개 카테고리 카운트 표시.
         long iphone = devices.stream().filter(d -> d.category.equals("iPhone")).count();
         long ipad = devices.stream().filter(d -> d.category.equals("iPad")).count();
+        long watch = devices.stream().filter(d -> d.category.equals("Watch")).count();
+        long ipod = devices.stream().filter(d -> d.category.equals("iPod")).count();
+        long simulator = devices.stream().filter(d -> d.category.equals("Simulator")).count();
+        long total = iphone + ipad + watch + ipod + simulator;
 
         String main =
             "<section class=\"hero\">\n" +
@@ -402,7 +457,7 @@ public class BuildSite {
             "  <div class=\"search-box\">\n" +
             "    <input id=\"q\" type=\"search\" autocomplete=\"off\" placeholder=\"식별자 또는 기종명으로 검색…\" aria-label=\"기기 검색\">\n" +
             "  </div>\n" +
-            "  <p class=\"count muted\">현재 " + (iphone + ipad) + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + ")</p>\n" +
+            "  <p class=\"count muted\">현재 " + total + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + " · Watch " + watch + " · iPod " + ipod + " · Simulator " + simulator + ")</p>\n" +
             "</section>\n" +
             adSlotHtml() +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n";
