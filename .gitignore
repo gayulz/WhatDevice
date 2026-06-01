@@ -13,3 +13,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# AI 개발자용 내부 문서 (README.md만 추적)
+ARCHITECTURE.md
+DECISIONS.md
+.autopus/
+docs/*.md
