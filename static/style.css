@@ -133,9 +133,29 @@ main { padding: 32px 0 48px; min-height: 60vh; }
   transition: transform .12s ease, border-color .12s ease;
 }
 .card:hover { transform: translateY(-2px); border-color: var(--accent); }
-.card .id { font-family: var(--mono); font-weight: 600; color: var(--accent); display: block; }
-.card .nm { margin-top: 4px; font-size: .95rem; }
-.card .cat { margin-top: 6px; font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+/* 카드 헤드: 식별자(좌) + 카테고리 배지(우) 같은 줄, 양쪽 정렬. */
+.card .card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.card .id { font-family: var(--mono); font-weight: 600; color: var(--accent); min-width: 0; }
+.card .nm { display: block; margin-top: 4px; font-size: .95rem; }
+/* 카테고리는 식별자 우측 끝에 배지로 표시한다. flex-shrink: 0 으로 식별자가 길어져도 배지는 줄지 않는다. */
+.card .cat {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  line-height: 1.4;
+}
 
 .empty { text-align: center; color: var(--text-muted); padding: 32px 0; }
 

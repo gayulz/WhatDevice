@@ -24,10 +24,13 @@
   }
 
   function card(d) {
+    // .card-head: 식별자(좌) + 카테고리 배지(우) 한 줄 양쪽 정렬 wrapper
     return '<a class="card" href="device/' + encodeURIComponent(d.s) + '.html">'
-      + '<span class="id">' + escapeHtml(d.i) + '</span>'
+      + '<span class="card-head">'
+      +   '<span class="id">' + escapeHtml(d.i) + '</span>'
+      +   '<span class="cat">' + escapeHtml(d.c) + '</span>'
+      + '</span>'
       + '<span class="nm">' + escapeHtml(d.n) + '</span>'
-      + '<span class="cat">' + escapeHtml(d.c) + '</span>'
       + '</a>';
   }
 
