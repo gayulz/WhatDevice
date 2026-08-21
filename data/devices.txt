@@ -63,6 +63,7 @@ iPhone18,1 : iPhone 17 Pro
 iPhone18,2 : iPhone 17 Pro Max
 iPhone18,3 : iPhone 17
 iPhone18,4 : iPhone Air
+iPhone18,5 : iPhone 17e
 
 iPod1,1 : 1st Gen iPod
 iPod2,1 : 2nd Gen iPod
@@ -170,6 +171,10 @@ iPad16,3 : iPad Pro 11 inch 5th Gen (WiFi)
 iPad16,4 : iPad Pro 11 inch 5th Gen (WiFi+Cellular)
 iPad16,5 : iPad Pro 12.9 inch 7th Gen (WiFi)
 iPad16,6 : iPad Pro 12.9 inch 7th Gen (WiFi+Cellular)
+iPad16,8 : iPad Air 11-inch 8th Gen (WiFi)
+iPad16,9 : iPad Air 11-inch 8th Gen (WiFi+Cellular)
+iPad16,10 : iPad Air 13-inch 8th Gen (WiFi)
+iPad16,11 : iPad Air 13-inch 8th Gen (WiFi+Cellular)
 
 Watch1,1 : Apple Watch 38mm case
 Watch1,2 : Apple Watch 42mm case
