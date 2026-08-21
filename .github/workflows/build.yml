@@ -1,6 +1,6 @@
 # GitHub Pages 자동 배포 워크플로
 # main 브랜치 push 시 BuildSite를 실행하여 dist/를 생성하고 Pages에 배포한다.
-# 데이터 자동 동기화(clo4 원본 재다운로드)가 필요하면 fetch 단계의 주석을 해제하면 된다.
+# 데이터 자동 동기화(adamawolf gist 재다운로드)가 필요하면 Sync 단계의 주석을 해제하면 된다.
 
 name: Build & Deploy
 
@@ -25,17 +25,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      # (선택) clo4 원본을 최신으로 동기화하려면 주석 해제
-      # - name: Sync devices.json (optional)
-      #   run: curl -sSL https://raw.githubusercontent.com/clo4/apple_device_identifiers/main/devices.json -o data/devices.json
+      # (선택) adamawolf gist 원본을 최신으로 동기화하려면 주석 해제.
+      # 주의: 빌드만 최신 데이터로 되고 data/devices.txt 커밋은 갱신되지 않아
+      # 저장소와 배포본이 어긋난다. 상시 켤 값이 아니라 schedule 과 세트로 쓸 것.
+      # - name: Sync devices.txt (optional)
+      #   run: curl -sSL https://gist.githubusercontent.com/adamawolf/3048717/raw/ -o data/devices.txt
 
       - name: Build site
         run: |
@@ -43,7 +45,7 @@ jobs:
           ./gradlew run --no-daemon
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -56,4 +58,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
