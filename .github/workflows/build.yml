@@ -1,25 +1,45 @@
-# GitHub Pages 자동 배포 워크플로
-# main 브랜치 push 시 BuildSite를 실행하여 dist/를 생성하고 Pages에 배포한다.
-# 데이터 자동 동기화(adamawolf gist 재다운로드)가 필요하면 Sync 단계의 주석을 해제하면 된다.
+# GitHub Pages 동기화·빌드·배포 워크플로
+#
+# 트리거별 동작:
+#   push(main)        — 빌드 + 배포 (데이터 동기화 안 함)
+#   schedule(주 1회)  — gist 동기화 + 빌드 + 배포 (변경 있을 때만 커밋)
+#   workflow_dispatch — 빌드 + 배포. sync=true 로 실행하면 동기화도 함께 수행
+#
+# 동기화는 별도 워크플로로 분리하지 않고 여기에 둔다. GITHUB_TOKEN 으로 만든 커밋은
+# 다른 워크플로를 트리거하지 않으므로(무한 루프 방지 정책), 파일을 나누면 동기화 커밋이
+# 배포로 이어지지 않는다. 같은 잡 안에서 커밋·빌드·배포를 끝내는 편이 안전하다.
+# 같은 이유로 이 워크플로의 봇 커밋은 자기 자신을 재실행시키지 않는다.
+# (개인 액세스 토큰으로 바꾸면 무한 루프가 생기므로 그때는 별도 가드가 필요하다.)
 
-name: Build & Deploy
+name: Sync, Build & Deploy
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-  # 데이터 주기 동기화 예시 (매주 월요일 03:00 UTC)
-  # schedule:
-  #   - cron: '0 3 * * 1'
+    inputs:
+      sync:
+        description: 'gist 데이터를 지금 동기화한다'
+        type: boolean
+        default: false
+  schedule:
+    # 매주 월요일 03:00 KST (= 일요일 18:00 UTC).
+    # 주의: 저장소에 60일간 활동이 없으면 GitHub 이 schedule 을 자동 비활성화한다.
+    - cron: '0 18 * * 0'
 
 permissions:
-  contents: read
+  # contents: write 는 동기화 단계의 봇 커밋에만 필요하다. 잡 단위 권한이라
+  # push 트리거 실행에도 함께 적용되지만, 실제 push 는 schedule/sync 조건에서만 일어난다.
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
+
+env:
+  GIST_URL: https://gist.githubusercontent.com/adamawolf/3048717/raw/
 
 jobs:
   build:
@@ -33,16 +53,69 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # (선택) adamawolf gist 원본을 최신으로 동기화하려면 주석 해제.
-      # 주의: 빌드만 최신 데이터로 되고 data/devices.txt 커밋은 갱신되지 않아
-      # 저장소와 배포본이 어긋난다. 상시 켤 값이 아니라 schedule 과 세트로 쓸 것.
-      # - name: Sync devices.txt (optional)
-      #   run: curl -sSL https://gist.githubusercontent.com/adamawolf/3048717/raw/ -o data/devices.txt
+      # ── 가드 1·2: 외부 gist 를 그대로 믿지 않는다 ──────────────────────────
+      # 1) --fail: gist 삭제·이동 시 HTML 에러 페이지를 데이터로 덮어쓰는 사고를 막는다.
+      # 2) 단말 수 비감소: 원본에서 대량 삭제가 일어나면 자동 반영을 거부하고 실패시킨다.
+      #    (늘어나는 것은 통과, 줄어드는 것은 사람이 확인해야 한다)
+      - name: Sync devices.txt from gist
+        if: github.event_name == 'schedule' || inputs.sync
+        run: |
+          curl -sSL --fail "$GIST_URL" -o /tmp/devices.txt
+          before=$(grep -c ' : ' data/devices.txt)
+          after=$(grep -c ' : ' /tmp/devices.txt)
+          echo "현재 ${before}종 → 수신 ${after}종"
+          if [ "$after" -lt "$before" ]; then
+            echo "::error::단말 수가 줄었습니다 (${before} → ${after}). 자동 반영을 중단합니다."
+            exit 1
+          fi
+          cp /tmp/devices.txt data/devices.txt
 
       - name: Build site
         run: |
           gradle wrapper --gradle-version 8.10.2
           ./gradlew run --no-daemon
+
+      # ── 가드 3: 형식이 깨진 줄은 빌드가 조용히 건너뛴다 ──────────────────
+      # 에러 없이 페이지 수만 줄어드는 상황을 잡기 위해 데이터 건수와 산출물 수를 대조한다.
+      - name: Verify build output
+        run: |
+          expected=$(grep -c ' : ' data/devices.txt)
+          actual=$(find dist/device -name '*.html' | wc -l | tr -d ' ')
+          echo "단말 ${expected}종 / 생성된 페이지 ${actual}개"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::데이터 건수와 생성된 페이지 수가 다릅니다 (${expected} vs ${actual})."
+            exit 1
+          fi
+
+      # 3개 가드를 모두 통과한 뒤에만 커밋한다. 변경이 없으면 조용히 넘어간다.
+      - name: Commit synced data
+        if: github.event_name == 'schedule' || inputs.sync
+        run: |
+          if git diff --quiet data/devices.txt; then
+            echo "gist 변경 없음 — 커밋 생략"
+            exit 0
+          fi
+          stat=$(git diff --numstat data/devices.txt)
+          add=$(echo "$stat" | cut -f1)
+          del=$(echo "$stat" | cut -f2)
+          total=$(grep -c ' : ' data/devices.txt)
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/devices.txt
+          git commit -F - <<EOF
+          chore(data): gist 자동 동기화 (+${add}/-${del}줄, 총 ${total}종)
+
+          adamawolf/3048717 gist 주간 자동 동기화 결과다. 사람이 개입하지 않았다.
+
+          Constraint: data/devices.txt 는 gist 미러다. 수기로 항목을 추가하면 다음 동기화에 덮어써진다.
+          Confidence: high
+          Scope-risk: local
+          Reversibility: trivial
+          Tested: 워크플로 자동 가드 3종 통과 (HTTP 성공 / 단말 수 비감소 / dist 페이지 수 ${total}개 일치)
+          Not-tested: 배포 후 신규 페이지 응답 확인은 수행하지 않았다.
+          Related: .github/workflows/build.yml
+          EOF
+          git push
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
