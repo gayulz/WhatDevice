@@ -46,25 +46,56 @@ public class BuildSite {
     /** 면책 문구 (누락 금지). */
     static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717)";
 
-    /** 카카오 애드핏 PC 광고 단위 (728x90 leaderboard). */
-    static final String ADFIT_UNIT_PC = "DAN-iE1zbQKstH7OpKgG";
-    /** 카카오 애드핏 모바일 광고 단위 (320x100). */
-    static final String ADFIT_UNIT_MOBILE = "DAN-Vx7eTegLs1VGrrwp";
+    /**
+     * 카카오 애드핏 광고 슬롯 정의. 한 페이지 안에서 같은 광고단위 ID를 두 번 쓰면
+     * 애드핏 SDK가 하나만 렌더링하므로, 슬롯 위치마다 별도 광고단위를 발급받아 채운다.
+     *
+     * <p>각 행: {PC 단위ID, PC 가로, PC 세로, 모바일 단위ID, 모바일 가로, 모바일 세로}
+     * ID가 비어 있는 슬롯은 마크업 자체를 만들지 않으므로 빈 채로 두어도 안전하다.
+     */
+    static final String[][] AD_SLOTS = {
+            // 0번 — 본문 상단 (기존 발급분)
+            {"DAN-iE1zbQKstH7OpKgG", "728", "90", "DAN-Vx7eTegLs1VGrrwp", "320", "100"},
+            // 1번 — 본문 중단
+            {"DAN-WskrFomUCrWzoHhN", "728", "90", "DAN-cMiMxf4Cx55QKekZ", "300", "250"},
+            // 2번 — 본문 하단
+            {"DAN-PzvZoJzyVSkvsJ4v", "728", "90", "DAN-akCDuUdchdUs1Pmi", "320", "100"},
+    };
 
     /**
      * 광고 슬롯 마크업을 만든다. PC/모바일 단위를 둘 다 박고 CSS 미디어 쿼리로 토글한다.
      * 카카오 SDK(layout.html 의 ba.min.js)가 페이지 내 모든 .kakao_ad_area 를 자동 스캔한다.
+     *
+     * @param slot AD_SLOTS 인덱스. 범위를 벗어나거나 ID가 비었으면 빈 문자열을 돌려준다.
      */
-    static String adSlotHtml() {
-        return ""
-            + "<div class=\"ad-slot\" aria-hidden=\"true\">\n"
-            + "  <ins class=\"kakao_ad_area ad-pc\" style=\"display:none;\"\n"
-            + "       data-ad-unit=\"" + ADFIT_UNIT_PC + "\"\n"
-            + "       data-ad-width=\"728\" data-ad-height=\"90\"></ins>\n"
-            + "  <ins class=\"kakao_ad_area ad-mobile\" style=\"display:none;\"\n"
-            + "       data-ad-unit=\"" + ADFIT_UNIT_MOBILE + "\"\n"
-            + "       data-ad-width=\"320\" data-ad-height=\"100\"></ins>\n"
-            + "</div>\n";
+    static String adSlotHtml(int slot) {
+        if (slot < 0 || slot >= AD_SLOTS.length) {
+            return "";
+        }
+        String[] s = AD_SLOTS[slot];
+        String pcUnit = s[0];
+        String mobileUnit = s[3];
+        if (pcUnit.isEmpty() && mobileUnit.isEmpty()) {
+            return ""; // 미발급 슬롯 — 빈 박스가 생기지 않도록 마크업을 통째로 생략
+        }
+        StringBuilder sb = new StringBuilder();
+        // CLS 방지용 예약 높이를 CSS 변수로 넘긴다(슬롯마다 크기가 달라서 인라인으로 지정).
+        sb.append("<div class=\"ad-slot\" aria-hidden=\"true\" style=\"--ad-h-mobile:")
+          .append(s[5]).append("px;--ad-h-pc:").append(s[2]).append("px;\">\n");
+        if (!pcUnit.isEmpty()) {
+            sb.append("  <ins class=\"kakao_ad_area ad-pc\" style=\"display:none;\"\n")
+              .append("       data-ad-unit=\"").append(pcUnit).append("\"\n")
+              .append("       data-ad-width=\"").append(s[1])
+              .append("\" data-ad-height=\"").append(s[2]).append("\"></ins>\n");
+        }
+        if (!mobileUnit.isEmpty()) {
+            sb.append("  <ins class=\"kakao_ad_area ad-mobile\" style=\"display:none;\"\n")
+              .append("       data-ad-unit=\"").append(mobileUnit).append("\"\n")
+              .append("       data-ad-width=\"").append(s[4])
+              .append("\" data-ad-height=\"").append(s[5]).append("\"></ins>\n");
+        }
+        sb.append("</div>\n");
+        return sb.toString();
     }
 
     /**
@@ -387,7 +418,10 @@ public class BuildSite {
                     .replace("{{CATEGORY}}", esc(d.category))
                     .replace("{{SLUG}}", esc(d.slug))
                     .replace("{{FAMILY}}", esc(d.familyKey) + ",x")
-                    .replace("{{RELATED}}", related);
+                    .replace("{{RELATED}}", related)
+                    .replace("{{AD_TOP}}", adSlotHtml(0))
+                    .replace("{{AD_MID}}", adSlotHtml(1))
+                    .replace("{{AD_BOTTOM}}", adSlotHtml(2));
 
             String title = d.identifier + " - " + d.name + " | " + SITE_NAME;
             String desc = d.identifier + "는 " + d.name + "의 애플 모델 식별자입니다. 식별자와 기종명을 양방향으로 확인하세요.";
@@ -459,8 +493,9 @@ public class BuildSite {
             "  </div>\n" +
             "  <p class=\"count muted\">현재 " + total + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + " · Watch " + watch + " · iPod " + ipod + " · Simulator " + simulator + ")</p>\n" +
             "</section>\n" +
-            adSlotHtml() +
-            "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n";
+            adSlotHtml(0) +
+            "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n" +
+            adSlotHtml(2);
 
         String title = SITE_NAME + " — 애플 기기 식별자 변환기";
         String desc = "iPhone15,2 같은 애플 기기 식별자(모델 코드)를 기종명으로, 또 그 반대로 즉시 변환·검색합니다.";
@@ -503,7 +538,7 @@ public class BuildSite {
                     .replace("{{SITE_NAME}}", SITE_NAME);
             // 가이드 페이지에만 본문 끝에 광고 슬롯 추가 (정책 페이지는 광고 미노출 — 신뢰도 보호)
             if (p[0].startsWith("guide/")) {
-                body = body + "\n" + adSlotHtml();
+                body = adSlotHtml(0) + "\n" + body + "\n" + adSlotHtml(2);
             }
             String title = p[2] + " | " + SITE_NAME;
             String canonical = SITE_URL + "/" + p[0];
