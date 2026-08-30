@@ -266,3 +266,20 @@ h3 { font-size: 1.02rem; margin-top: 20px; }
   .device-meta dt { margin-top: 8px; }
   .results { grid-template-columns: 1fr; }
 }
+
+/* ── 카테고리 허브·홈 기기 목록 ─────────────────────────────── */
+/* 항목이 많아(iPad 102종) 세로 한 줄로는 너무 길어지므로 다단 그리드로 배치한다. */
+.device-index { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+.home-category { margin-top: 36px; }
+.home-category h2 { font-size: 1.15rem; margin: 0 0 12px; }
+.home-category h2 a { color: inherit; text-decoration: none; }
+.home-category h2 a:hover { color: var(--accent); }
+.home-category .more { margin-top: 12px; font-size: .9rem; }
+.home-category .more a { color: var(--accent); text-decoration: none; }
+.home-category .more a:hover { text-decoration: underline; }
+
+.footer-categories { margin-bottom: 6px; }
+
+/* [hidden] 이 display:grid/flex 에 덮이지 않도록 (검색 중 정적 목록 숨김용) */
+[hidden] { display: none !important; }

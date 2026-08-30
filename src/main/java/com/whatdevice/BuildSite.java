@@ -151,6 +151,9 @@ public class BuildSite {
         // 3) 같은 계열끼리 묶기 (관련 기기 링크용)
         Map<String, List<Device>> families = groupByFamily(devices);
 
+        // 3-1) 카테고리별로 묶기 (허브 페이지·홈 목록·푸터 내비게이션이 함께 쓴다)
+        Map<String, List<Device>> byCategory = CategoryPages.groupByCategory(devices);
+
         // 4) dist 준비 + static 복사
         Files.createDirectories(DIST);
         copyStatic();
@@ -166,13 +169,16 @@ public class BuildSite {
         writeDataJs(devices);
 
         // 8) 메인 페이지 생성
-        generateIndex(devices, layout);
+        generateIndex(devices, byCategory, layout);
+
+        // 8-1) 카테고리 허브 페이지 생성 (크롤러가 기기 상세로 들어가는 유일한 경로)
+        CategoryPages.generate(byCategory, layout);
 
         // 9) 가이드 글 + 정책 페이지 생성 (content/ 의 본문을 layout 으로 감쌈)
         generateContentPages(layout);
 
         // 10) SEO 파일
-        writeSitemap(devices);
+        writeSitemap(devices, byCategory);
         writeRobots();
 
         System.out.println("[WhatDevice] 빌드 완료 → dist/ (" + devices.size() + "개 기기 페이지)");
@@ -419,8 +425,11 @@ public class BuildSite {
                     .replace("{{SLUG}}", esc(d.slug))
                     .replace("{{FAMILY}}", esc(d.familyKey) + ",x")
                     .replace("{{RELATED}}", related)
-                    .replace("{{AD_TOP}}", adSlotHtml(0))
-                    .replace("{{AD_MID}}", adSlotHtml(1))
+                    .replace("{{CATEGORY_HREF}}", esc(CategoryPages.href("../", d.category)))
+                    // 기기 상세는 고유 본문이 짧다(식별자·기종명 두 문자열). 광고를 3개 붙이면
+                    // 콘텐츠 대비 광고 비율이 과해져 색인에서 불리하므로 본문 하단 1개만 둔다.
+                    .replace("{{AD_TOP}}", "")
+                    .replace("{{AD_MID}}", "")
                     .replace("{{AD_BOTTOM}}", adSlotHtml(2));
 
             String title = d.identifier + " - " + d.name + " | " + SITE_NAME;
@@ -474,7 +483,8 @@ public class BuildSite {
     // ===================== 8. index =====================
 
     /** 메인(검색) 페이지 생성. */
-    static void generateIndex(List<Device> devices, String layout) throws IOException {
+    static void generateIndex(List<Device> devices, Map<String, List<Device>> byCategory,
+                              String layout) throws IOException {
         // SPEC-DATA-001: 5개 카테고리 카운트 표시.
         long iphone = devices.stream().filter(d -> d.category.equals("iPhone")).count();
         long ipad = devices.stream().filter(d -> d.category.equals("iPad")).count();
@@ -495,6 +505,9 @@ public class BuildSite {
             "</section>\n" +
             adSlotHtml(0) +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n" +
+            // 검색 결과는 JS 가 그리므로 크롤러에게는 빈 영역이다. 크롤 경로 확보를 위해
+            // 카테고리 허브와 기기 링크를 정적 HTML 로 함께 내보낸다.
+            CategoryPages.homeSections(byCategory) +
             adSlotHtml(2);
 
         String title = SITE_NAME + " — 애플 기기 식별자 변환기";
@@ -552,7 +565,8 @@ public class BuildSite {
     // ===================== 10. SEO 파일 =====================
 
     /** 전 페이지 URL 을 담은 sitemap.xml 생성. */
-    static void writeSitemap(List<Device> devices) throws IOException {
+    static void writeSitemap(List<Device> devices, Map<String, List<Device>> byCategory)
+            throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
@@ -563,6 +577,10 @@ public class BuildSite {
         appendUrl(sb, SITE_URL + "/policy/terms.html");
         appendUrl(sb, SITE_URL + "/policy/privacy.html");
         appendUrl(sb, SITE_URL + "/policy/contact.html");
+        // 카테고리 허브
+        for (String loc : CategoryPages.sitemapUrls(byCategory)) {
+            appendUrl(sb, loc);
+        }
         // 기기 페이지
         for (Device d : devices) {
             appendUrl(sb, SITE_URL + "/device/" + d.slug + ".html");
@@ -594,6 +612,7 @@ public class BuildSite {
                 .replace("{{DESCRIPTION}}", esc(description))
                 .replace("{{CANONICAL}}", esc(canonical))
                 .replace("{{DISCLAIMER}}", esc(DISCLAIMER))
+                .replace("{{CATEGORY_NAV}}", CategoryPages.footerNav(base))
                 .replace("{{SCRIPTS}}", scripts)
                 .replace("{{MAIN}}", main); // MAIN 은 이미 HTML 이므로 esc 하지 않음
     }

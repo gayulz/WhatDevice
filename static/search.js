@@ -3,6 +3,8 @@
 (function () {
   var input = document.getElementById('q');
   var results = document.getElementById('results');
+  // 정적으로 렌더된 카테고리 목록(BuildSite 가 생성). 검색 중에만 숨긴다.
+  var directory = document.getElementById('directory');
   if (!input || !results || !window.DEVICES) return;
 
   var DEVICES = window.DEVICES;
@@ -44,12 +46,23 @@
     results.innerHTML = html;
   }
 
+  // 정적 카테고리 목록 표시/숨김. 검색 결과와 동시에 보이면 같은 링크가 두 번 나온다.
+  function showDirectory(show) {
+    if (directory) {
+      directory.hidden = !show;
+    }
+  }
+
   function search(q) {
     var nq = norm(q);
     if (nq === '') {
-      render(DEVICES); // 빈 검색어면 전체 목록(콘텐츠 양 확보 + 탐색 가능)
+      // 빈 검색어면 정적 카테고리 목록으로 되돌아간다.
+      // 여기서 전체를 JS 로 다시 그리면 크롤러가 받는 HTML 과 화면이 어긋난다.
+      results.innerHTML = '';
+      showDirectory(true);
       return;
     }
+    showDirectory(false);
     var matched = DEVICES.filter(function (d) {
       return d._h.indexOf(nq) !== -1;
     });
@@ -64,8 +77,7 @@
     timer = setTimeout(function () { search(v); }, 80);
   });
 
-  // 최초 렌더: 전체 목록
-  render(DEVICES);
+  // 최초에는 아무것도 그리지 않는다 — 정적 카테고리 목록이 이미 화면에 있다.
 
   // URL ?q= 로 들어온 경우 자동 검색
   try {
