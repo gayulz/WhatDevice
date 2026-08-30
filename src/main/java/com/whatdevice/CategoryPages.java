@@ -21,8 +21,11 @@ import java.util.Map;
  */
 final class CategoryPages {
 
-    /** 홈에서 카테고리마다 미리 보여줄 기기 수. 나머지는 허브 페이지가 전부 나열한다. */
-    static final int HOME_PREVIEW = 12;
+    /**
+     * 홈에서 카테고리마다 보여줄 기기 수. 0이면 전체를 나열한다.
+     * 12 같은 양수로 두면 미리보기만 내고 나머지는 허브 페이지가 맡는다.
+     */
+    static final int HOME_PREVIEW = 0;
 
     private CategoryPages() {
     }
@@ -91,7 +94,11 @@ final class CategoryPages {
         return sb.toString();
     }
 
-    /** 홈에 넣을 카테고리 섹션들. 카테고리마다 최신 HOME_PREVIEW 개를 링크로 노출한다. */
+    /**
+     * 홈에 넣을 카테고리 섹션들. 카테고리마다 HOME_PREVIEW 개(0이면 전체)를 링크로 노출한다.
+     * 전체를 나열하더라도 허브 링크는 함께 남긴다 — 허브 자체가 색인 대상이고,
+     * 기기 상세의 푸터·breadcrumb 역링크가 향하는 목적지이기 때문이다.
+     */
     static String homeSections(Map<String, List<BuildSite.Device>> byCategory) {
         StringBuilder sb = new StringBuilder();
         // id=directory: search.js 가 검색 중에만 숨긴다. 검색어가 비면 이 정적 목록이 기본 화면이며,
@@ -108,7 +115,10 @@ final class CategoryPages {
               .append(deviceLinks(list, "", HOME_PREVIEW))
               .append("  </ul>\n")
               .append("  <p class=\"more\"><a href=\"").append(hubHref).append("\">")
-              .append(category).append(" 전체 ").append(list.size()).append("종 보기 →</a></p>\n")
+              .append(category)
+              // 홈이 이미 전체를 나열한 경우 "전체 N종 보기"는 어긋난 안내가 된다.
+              .append(HOME_PREVIEW > 0 ? " 전체 " + list.size() + "종 보기 →" : " 목록 페이지 →")
+              .append("</a></p>\n")
               .append("</section>\n");
         }
         sb.append("</div>\n");
