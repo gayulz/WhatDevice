@@ -244,6 +244,17 @@ h3 { font-size: 1.02rem; margin-top: 20px; }
   .ad-slot .ad-mobile { display: none !important; }
 }
 
+/* ===== 광고 영역 (쿠팡 파트너스 추천 배너) =====
+   발급 사이즈는 680x140. 스크립트가 컨테이너 폭에 맞춰 iframe 폭을 줄이므로
+   가로 스크롤은 생기지 않는다. min-height 는 CLS 방지용 예약 높이. */
+.coupang-slot {
+  margin: 28px auto;
+  max-width: 680px;
+  min-height: 140px;
+  overflow: hidden;
+}
+.coupang-slot iframe { display: block; margin: 0 auto; border: 0; }
+
 /* ===== 푸터 ===== */
 .site-footer {
   border-top: 1px solid var(--border);

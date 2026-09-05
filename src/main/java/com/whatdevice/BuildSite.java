@@ -98,6 +98,35 @@ public class BuildSite {
         return sb.toString();
     }
 
+    /** 쿠팡 파트너스 배너(고객 관심 기반 추천, carousel) 발급 정보. */
+    static final String COUPANG_ID = "1026302";
+    static final String COUPANG_TRACKING = "AF3075571";
+    /** 발급 사이즈. 모바일에서는 컨테이너 폭에 맞춰 줄여 넣는다(가로 스크롤 방지). */
+    static final int COUPANG_WIDTH = 680;
+    static final int COUPANG_HEIGHT = 140;
+
+    /**
+     * 쿠팡 파트너스 추천 배너 마크업. SDK(g.js)는 layout.html 에서 한 번만 로드하고,
+     * 여기서는 삽입 위치에 생성자 호출 스크립트만 둔다(스크립트 위치에 iframe 이 꽂힌다).
+     *
+     * <p>페이지당 1개만 쓴다 — 애드핏 슬롯과 겹쳐 광고 비율이 과해지면 색인에 불리하다.
+     */
+    static String coupangHtml() {
+        return "<div class=\"coupang-slot\">\n"
+             + "  <script>\n"
+             + "    (function () {\n"
+             + "      if (typeof PartnersCoupang === 'undefined') return;\n"
+             + "      var box = document.currentScript.parentElement;\n"
+             + "      var w = Math.max(300, Math.min(" + COUPANG_WIDTH + ", box.clientWidth));\n"
+             + "      new PartnersCoupang.G({\n"
+             + "        id: " + COUPANG_ID + ", trackingCode: \"" + COUPANG_TRACKING + "\", subId: null,\n"
+             + "        template: \"carousel\", width: String(w), height: \"" + COUPANG_HEIGHT + "\"\n"
+             + "      });\n"
+             + "    })();\n"
+             + "  </script>\n"
+             + "</div>\n";
+    }
+
     /**
      * 사이트에 포함할 기기 카테고리(=식별자 접두어). 여기에 "iPod","Watch","Mac" 등을
      * 추가하면 범위가 바로 넓어진다. (지시서: 카테고리 토글로 확장 가능하게 설계)
@@ -429,7 +458,8 @@ public class BuildSite {
                     // 기기 상세는 고유 본문이 짧다(식별자·기종명 두 문자열). 광고를 3개 붙이면
                     // 콘텐츠 대비 광고 비율이 과해져 색인에서 불리하므로 본문 하단 1개만 둔다.
                     .replace("{{AD_TOP}}", "")
-                    .replace("{{AD_MID}}", "")
+                    // 중단은 애드핏 대신 쿠팡 추천 배너 1개(같은 계열 목록과 FAQ 사이)
+                    .replace("{{AD_MID}}", coupangHtml())
                     .replace("{{AD_BOTTOM}}", adSlotHtml(2));
 
             String title = d.identifier + " - " + d.name + " | " + SITE_NAME;
@@ -505,6 +535,7 @@ public class BuildSite {
             "</section>\n" +
             adSlotHtml(0) +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n" +
+            coupangHtml() +
             // 검색 결과는 JS 가 그리므로 크롤러에게는 빈 영역이다. 크롤 경로 확보를 위해
             // 카테고리 허브와 기기 링크를 정적 HTML 로 함께 내보낸다.
             CategoryPages.homeSections(byCategory) +
@@ -553,6 +584,8 @@ public class BuildSite {
             if (p[0].startsWith("guide/")) {
                 body = adSlotHtml(0) + "\n" + body + "\n" + adSlotHtml(2);
             }
+            // 본문 중간의 {{COUPANG}} 토큰 치환. 정책 페이지에는 토큰이 없어 그대로 통과한다.
+            body = body.replace("{{COUPANG}}", p[0].startsWith("guide/") ? coupangHtml() : "");
             String title = p[2] + " | " + SITE_NAME;
             String canonical = SITE_URL + "/" + p[0];
             String html = renderLayout(layout, p[1], title, p[3], canonical, body, "");

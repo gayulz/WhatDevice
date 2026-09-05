@@ -146,6 +146,7 @@ final class CategoryPages {
                   + "<ul class=\"related-list device-index\">\n"
                   + deviceLinks(list, "../", 0)
                   + "</ul>\n"
+                  + BuildSite.coupangHtml()
                   + BuildSite.adSlotHtml(2);
 
             String title = e.getKey() + " 기기 식별자 전체 목록 (" + list.size() + "종) | "

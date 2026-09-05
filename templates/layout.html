@@ -41,6 +41,10 @@
     <!-- 카카오 애드핏 SDK (페이지당 1회 로드, 모든 .kakao_ad_area 자동 스캔) -->
     <script type="text/javascript" src="//t1.kakaocdn.net/kas/static/ba.min.js" async></script>
 
+    <!-- 쿠팡 파트너스 SDK. 본문 안의 인라인 스크립트가 삽입 위치에서 즉시 실행되므로
+         async/defer 를 붙이면 안 된다(PartnersCoupang 이 미정의 상태가 됨). -->
+    <script src="https://ads-partners.coupang.com/g.js"></script>
+
     <!-- 다크모드 깜빡임 방지: 렌더 전에 테마 클래스를 미리 적용 -->
     <script>
         (function () {
@@ -87,6 +91,7 @@
             <a href="{{BASE}}policy/contact.html">문의</a>
         </nav>
         <p class="disclaimer">{{DISCLAIMER}}</p>
+        <p class="disclaimer">이 사이트는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.</p>
     </div>
 </footer>
 
