@@ -5,8 +5,8 @@
 
 - **프레임워크 없음**: 화면은 순수 HTML + CSS + 바닐라 JS.
 - **서버·DB 없음**: Java(Gradle) 빌드 스크립트가 데이터를 읽어 정적 HTML(`dist/`)을 한 번에 생성.
-- **데이터**: [clo4/apple_device_identifiers](https://github.com/clo4/apple_device_identifiers)(퍼블릭 도메인) + 누락 보강용 `data/overrides.json`.
-- **범위(MVP)**: iPhone + iPad (총 160종). 카테고리는 코드 상수로 분리되어 있어 확장이 쉽습니다.
+- **데이터**: [adamawolf/apple_device_identifiers](https://gist.github.com/adamawolf/3048717) gist 를 단일 권위 출처로 미러링(`data/devices.txt`). CI 가 주 1회 자동 동기화합니다.
+- **범위**: iPhone · iPad · Watch · iPod · Simulator (총 232종). 카테고리는 `BuildSite.CATEGORIES` 상수라 확장이 쉽습니다.
 
 ---
 
@@ -15,11 +15,11 @@
 ```
 WhatDevice/
 ├── data/
-│   ├── devices.json        # clo4 원본 (동봉)
-│   └── overrides.json      # 누락/최신 기기 보강 (직접 작성)
+│   └── devices.txt         # adamawolf gist 미러 (CI 주간 자동 동기화 — 수기 편집 금지)
 ├── templates/
 │   ├── layout.html         # 공통 레이아웃(헤더/푸터/메타/다크모드)
 │   └── device.html         # 기기 상세 본문 템플릿
+├── .github/workflows/build.yml                   # 동기화 + 빌드 + Pages 배포
 ├── content/                # 가이드·정책 페이지 본문(HTML 조각)
 ├── static/                 # 그대로 dist/ 로 복사 (style.css, search.js, theme.js, favicon.svg)
 ├── src/main/java/com/whatdevice/BuildSite.java   # 빌드 스크립트
@@ -83,30 +83,34 @@ python3 -m http.server 8000
 2. `./gradlew run` 으로 다시 빌드합니다.
 3. `dist/` 폴더의 내용을 GitHub Pages가 바라보는 위치에 올립니다.
    - 가장 단순한 방법: `dist/` 내용을 `gh-pages` 브랜치 루트에 푸시.
-   - 자동화 초안은 `.github/workflows/build.yml.disabled` 에 있습니다(현재 **비활성**).
+   - `main` 에 푸시하면 `.github/workflows/build.yml` 이 빌드·배포까지 자동으로 합니다(현재 **활성**).
 4. 배포 후 Google Search Console에 사이트를 등록하고 `sitemap.xml`을 제출합니다.
 
-### 분석·광고 (선택, 현재 placeholder)
+### 분석·광고 (현재 운영 중)
 
-`templates/layout.html` 의 다음 항목들은 주석 처리된 **placeholder**입니다. 실제 ID 발급 후 교체·주석 해제하세요.
+`templates/layout.html` 에 실제 ID 가 들어가 있습니다.
 
-- Google Search Console 소유권 확인 메타태그
-- Google Analytics(GA4) 스니펫 — `G-XXXXXXXXXX`
-- Google AdSense 스니펫 — `ca-pub-XXXXXXXXXXXXXXXX`
+- Google Search Console 소유권 확인 메타태그 · Google Tag Manager (`GTM-5N22XGPL`)
+- 카카오 애드핏 — 슬롯 정의는 `BuildSite.AD_SLOTS`, 마크업은 `.ad-slot`
+- 쿠팡 파트너스 추천 배너 — 페이지당 1개, 마크업은 `.coupang-slot`
 
-각 페이지의 `.ad-slot` 영역이 광고 자리입니다.
+정책 페이지(`policy/*`)에는 광고를 넣지 않습니다.
 
 ---
 
 ## 데이터 갱신 방법
 
-1. 최신 원본이 필요하면 `data/devices.json`을 clo4 저장소에서 다시 받아 덮어씁니다.
-2. 원본에 빠진 최신 기기는 `data/overrides.json`에 `"기종명": "식별자"` 형태로 추가합니다.
-   - 추가 시 **신뢰할 수 있는 출처를 확인**하고, 불확실하면 넣지 마세요(`DECISIONS.md` 정책 참고).
-3. `./gradlew run` 으로 재빌드합니다.
+**평소에는 손댈 일이 없습니다.** CI 가 매주 월요일 03:00 KST 에 gist 를 받아
+변경이 있을 때만 커밋하고 배포까지 합니다. 동기화는 가드 3종(HTTP 성공 / 단말 수 비감소 /
+생성된 페이지 수 일치)을 통과해야 반영됩니다.
+
+- 지금 당장 반영하려면: Actions 탭에서 `Sync, Build & Deploy` 를 `sync=true` 로 수동 실행합니다.
+- `data/devices.txt` 는 gist 미러입니다. **수기로 항목을 추가하면 다음 동기화에 덮어써집니다.**
+  원본에 없는 기기가 필요하면 gist 에 먼저 반영하거나 별도 보강 경로를 새로 설계해야 합니다.
+- 로컬 재빌드는 `./gradlew run` 입니다.
 
 ---
 
 ## 면책
 
-비공식 참고용 데이터입니다. 출처: clo4/apple_device_identifiers. 본 사이트는 Apple Inc.와 제휴 관계가 없습니다.
+비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717). 본 사이트는 Apple Inc.와 제휴 관계가 없습니다.

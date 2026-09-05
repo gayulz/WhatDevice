@@ -1,8 +1,5 @@
 package com.whatdevice;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +18,7 @@ import java.util.stream.Collectors;
 /**
  * WhatDevice 정적 사이트 빌드 스크립트.
  *
- * <p>data/ 의 JSON 을 읽어 병합·필터·가공한 뒤 templates/ 와 static/ 을 이용해
+ * <p>data/devices.txt 를 읽어 필터·가공한 뒤 templates/ 와 static/ 을 이용해
  * dist/ 에 정적 HTML 사이트 전체를 생성한다. 서버가 아니라 한 번 실행하고 끝나는
  * "빌드 도구"다.
  *
@@ -167,10 +163,8 @@ public class BuildSite {
     public static void main(String[] args) throws IOException {
         System.out.println("[WhatDevice] 빌드 시작");
 
-        ObjectMapper mapper = new ObjectMapper();
-
-        // 1) 원본 + override 병합
-        Map<String, String> merged = loadMergedData(mapper);
+        // 1) 데이터 로드
+        Map<String, String> merged = loadMergedData();
         System.out.println("  - 병합된 전체 기기 수: " + merged.size());
 
         // 2) 범위 필터 + 슬러그/한글명/계열키 생성
@@ -216,13 +210,13 @@ public class BuildSite {
     // ===================== 1. 데이터 로드/병합 =====================
 
     /**
-     * devices.json(원본)과 overrides.json(보강)을 읽어 하나의 맵으로 병합한다.
-     * override 값이 원본보다 우선한다. "_" 로 시작하는 키(주석용)는 무시한다.
+     * 기기 데이터를 읽어 Map&lt;식별자, 기종명&gt; 으로 돌려준다.
+     *
+     * <p>SPEC-DATA-001 이후 adamawolf/3048717 gist 미러(data/devices.txt)가 단일 권위 출처다.
+     * 형식은 각 라인 "{identifier} : {name}" — 콜론 양쪽에 공백이 있다.
+     * 파일은 CI 가 주 1회 자동 동기화하므로 수기로 항목을 추가하면 다음 동기화에 덮어써진다.
      */
-    static Map<String, String> loadMergedData(ObjectMapper mapper) throws IOException {
-        // SPEC-DATA-001: adamawolf/3048717 gist를 단일 권위 출처로 사용.
-        // 형식: 각 라인 "{identifier} : {name}" — 콜론 양쪽에 공백.
-        // 기존 BuildSite는 Map<name, identifier> 형식을 기대하므로 동일하게 반환.
+    static Map<String, String> loadMergedData() throws IOException {
         Map<String, String> merged = new LinkedHashMap<>();
         Path file = DATA.resolve("devices.txt");
         if (!Files.exists(file)) {
@@ -252,25 +246,6 @@ public class BuildSite {
         return merged;
     }
 
-    /** JSON 객체({"이름":"식별자"})를 읽어 target 맵에 채운다. 값이 문자열인 항목만 취한다. */
-    static void readJsonStringMap(ObjectMapper mapper, Path file, Map<String, String> target)
-            throws IOException {
-        if (!Files.exists(file)) {
-            throw new IOException("필수 데이터 파일 없음: " + file.toAbsolutePath());
-        }
-        JsonNode root = mapper.readTree(Files.readAllBytes(file));
-        Iterator<Map.Entry<String, JsonNode>> it = root.fields();
-        while (it.hasNext()) {
-            Map.Entry<String, JsonNode> e = it.next();
-            String key = e.getKey();
-            if (key.startsWith("_")) {
-                continue; // 주석용 키 (예: "_comment")
-            }
-            if (e.getValue().isTextual()) {
-                target.put(key, e.getValue().asText());
-            }
-        }
-    }
 
     // ===================== 2. 기기 목록 가공 =====================
 

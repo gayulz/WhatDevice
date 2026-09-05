@@ -17,10 +17,8 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    // JSON 파싱용 Jackson. 그 외 의존성은 최소화(표준 라이브러리 사용).
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
-}
+// 의존성 없음. 데이터가 JSON 에서 devices.txt(gist 미러)로 옮겨가면서 Jackson 이 불필요해졌다.
+// 지금은 JDK 표준 라이브러리만 쓴다.
 
 application {
     // 빌드 진입점
