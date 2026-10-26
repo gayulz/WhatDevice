@@ -73,13 +73,13 @@ jobs:
       - name: Build site
         run: |
           gradle wrapper --gradle-version 8.10.2
-          ./gradlew run --no-daemon
+          ./gradlew check run --no-daemon
 
       # ── 가드 3: 형식이 깨진 줄은 빌드가 조용히 건너뛴다 ──────────────────
       # 에러 없이 페이지 수만 줄어드는 상황을 잡기 위해 데이터 건수와 산출물 수를 대조한다.
       - name: Verify build output
         run: |
-          expected=$(grep -c ' : ' data/devices.txt)
+          expected=$(awk -F ' : ' '!/^#/ && NF == 2 {print $1}' data/devices.txt data/devices-supplement.txt | sort -u | wc -l | tr -d ' ')
           actual=$(find dist/device -name '*.html' | wc -l | tr -d ' ')
           echo "단말 ${expected}종 / 생성된 페이지 ${actual}개"
           if [ "$expected" != "$actual" ]; then

@@ -36,3 +36,15 @@ tasks.named('run') {
     // 프로젝트 루트를 작업 디렉토리로 고정(데이터/템플릿 상대경로 기준)
     workingDir = projectDir
 }
+
+tasks.register('verifyDevices', JavaExec) {
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.whatdevice.DeviceDataTest'
+    enableAssertions = true
+    workingDir = projectDir
+}
+
+tasks.named('check') {
+    dependsOn 'verifyDevices'
+}

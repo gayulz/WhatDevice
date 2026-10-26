@@ -40,7 +40,7 @@ public class BuildSite {
     /** 문의 이메일 (지시서 2번 항목 5번 확정값). */
     static final String CONTACT_EMAIL = "gayulz@kakao.com";
     /** 면책 문구 (누락 금지). */
-    static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717)";
+    static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717), DeviceKit·UFADE 보강 자료";
 
     /**
      * 카카오 애드핏 광고 슬롯 정의. 한 페이지 안에서 같은 광고단위 ID를 두 번 쓰면
@@ -212,13 +212,19 @@ public class BuildSite {
     /**
      * 기기 데이터를 읽어 Map&lt;식별자, 기종명&gt; 으로 돌려준다.
      *
-     * <p>SPEC-DATA-001 이후 adamawolf/3048717 gist 미러(data/devices.txt)가 단일 권위 출처다.
+     * <p>adamawolf/3048717 gist 미러(data/devices.txt)에 없는 식별자만
+     * data/devices-supplement.txt에서 보강한다. 같은 식별자는 gist 값을 우선한다.
      * 형식은 각 라인 "{identifier} : {name}" — 콜론 양쪽에 공백이 있다.
-     * 파일은 CI 가 주 1회 자동 동기화하므로 수기로 항목을 추가하면 다음 동기화에 덮어써진다.
+     * 미러는 CI가 주 1회 자동 동기화하므로 보강 항목은 별도 파일에서 관리한다.
      */
     static Map<String, String> loadMergedData() throws IOException {
+        Map<String, String> merged = loadData(DATA.resolve("devices.txt"));
+        loadData(DATA.resolve("devices-supplement.txt")).forEach(merged::putIfAbsent);
+        return merged;
+    }
+
+    static Map<String, String> loadData(Path file) throws IOException {
         Map<String, String> merged = new LinkedHashMap<>();
-        Path file = DATA.resolve("devices.txt");
         if (!Files.exists(file)) {
             throw new IOException("필수 데이터 파일 없음: " + file.toAbsolutePath());
         }
@@ -330,6 +336,7 @@ public class BuildSite {
             {"mini", "미니"},
             {"Mini", "미니"},
             {"Air", "에어"},
+            {"Duo", "듀오"},
             {"Ultra", "울트라"},
             {"Series", "시리즈"},
             // 일반 토큰

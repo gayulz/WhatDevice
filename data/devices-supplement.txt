@@ -1,0 +1,9 @@
+# 원본 gist에 없는 식별자만 보강한다. 같은 식별자가 gist에 추가되면 gist 값을 우선한다.
+# 확인일 2026-10-26
+# 제품명과 출시 확인 https://www.apple.com/kr/iphone/
+# Pro 식별자 https://github.com/devicekit/DeviceKit/blob/master/Source/Device.generated.swift
+# Duo 및 지역별 식별자 https://github.com/prosch88/UFADE/blob/main/ufade/irecv_devices.py
+iPhone19,2 : iPhone 18 Pro
+iPhone19,3 : iPhone 18 Pro Max
+iPhone19,4 : iPhone Duo
+iPhone19,7 : iPhone 18 Pro Max

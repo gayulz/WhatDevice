@@ -5,8 +5,8 @@
 
 - **프레임워크 없음**: 화면은 순수 HTML + CSS + 바닐라 JS.
 - **서버·DB 없음**: Java(Gradle) 빌드 스크립트가 데이터를 읽어 정적 HTML(`dist/`)을 한 번에 생성.
-- **데이터**: [adamawolf/apple_device_identifiers](https://gist.github.com/adamawolf/3048717) gist 를 단일 권위 출처로 미러링(`data/devices.txt`). CI 가 주 1회 자동 동기화합니다.
-- **범위**: iPhone · iPad · Watch · iPod · Simulator (총 232종). 카테고리는 `BuildSite.CATEGORIES` 상수라 확장이 쉽습니다.
+- **데이터**: [adamawolf/apple_device_identifiers](https://gist.github.com/adamawolf/3048717) gist 미러(`data/devices.txt`)를 기본으로 사용합니다. CI가 주 1회 자동 동기화하며, 원본에 없는 출시 기기는 출처를 확인한 `data/devices-supplement.txt`로 보강합니다. 같은 식별자는 gist 값을 우선합니다.
+- **범위**: iPhone · iPad · Watch · iPod · Simulator (2026-10-26 기준 총 236개 식별자). 같은 모델의 지역별 식별자는 각각 수록합니다. 카테고리는 `BuildSite.CATEGORIES` 상수입니다.
 
 ---
 
@@ -33,8 +33,9 @@ WhatDevice/
 
 ## 요구 환경
 
-- **JDK 21** (다른 버전을 쓰려면 `build.gradle`의 `JavaLanguageVersion.of(21)` 숫자만 변경)
-- 인터넷 연결 (최초 빌드 시 Gradle 배포본과 Jackson 의존성 다운로드)
+- **JDK 17** (`build.gradle`의 Java toolchain과 동일)
+- **Gradle 8.x** (CI의 wrapper 버전은 8.10.2)
+- 인터넷 연결 (최초 wrapper 사용 시 Gradle 배포본 다운로드). 프로젝트 외부 라이브러리 의존성은 없습니다.
 
 ---
 
@@ -51,7 +52,7 @@ WhatDevice/
 gradle wrapper --gradle-version 8.10.2
 
 # 사이트 빌드 (dist/ 전체 생성)
-./gradlew run
+./gradlew check run --no-daemon
 ```
 
 > Gradle 설치(macOS): `brew install gradle`
@@ -59,7 +60,7 @@ gradle wrapper --gradle-version 8.10.2
 ### 2) wrapper 없이 시스템 Gradle로 바로 실행
 
 ```bash
-gradle run
+gradle check run --no-daemon
 ```
 
 빌드가 끝나면 `dist/` 에 전체 사이트가 생성됩니다.
@@ -102,15 +103,27 @@ python3 -m http.server 8000
 
 **평소에는 손댈 일이 없습니다.** CI 가 매주 월요일 03:00 KST 에 gist 를 받아
 변경이 있을 때만 커밋하고 배포까지 합니다. 동기화는 가드 3종(HTTP 성공 / 단말 수 비감소 /
-생성된 페이지 수 일치)을 통과해야 반영됩니다.
+원본·보강 파일을 합친 고유 식별자 수와 생성된 페이지 수 일치)과 `gradle check`를 통과해야 반영됩니다.
 
 - 지금 당장 반영하려면: Actions 탭에서 `Sync, Build & Deploy` 를 `sync=true` 로 수동 실행합니다.
 - `data/devices.txt` 는 gist 미러입니다. **수기로 항목을 추가하면 다음 동기화에 덮어써집니다.**
-  원본에 없는 기기가 필요하면 gist 에 먼저 반영하거나 별도 보강 경로를 새로 설계해야 합니다.
-- 로컬 재빌드는 `./gradlew run` 입니다.
+  원본에 없는 기기는 `data/devices-supplement.txt`에 출처와 확인일을 함께 기록합니다. 이 파일은 자동 동기화로 덮어쓰지 않습니다.
+- 두 파일은 식별자를 키로 합치며 gist가 우선합니다. gist에 같은 식별자가 추가되어도 페이지와 검색 결과가 중복되지 않습니다.
+- 보강 데이터 확인: 제품명·출시는 [Apple](https://www.apple.com/kr/iphone/), Pro 식별자는 [DeviceKit](https://github.com/devicekit/DeviceKit/blob/master/Source/Device.generated.swift), Duo 및 지역별 식별자는 [UFADE](https://github.com/prosch88/UFADE/blob/main/ufade/irecv_devices.py)를 대조했습니다.
+- 2026-10-26 추가 항목은 다음과 같습니다. iPhone 17·17 Pro·17 Pro Max·Air·17e·16e는 기존 미러에 이미 포함되어 있습니다.
+
+| 식별자 | 기종명 | 구분 |
+|---|---|---|
+| `iPhone19,2` | iPhone 18 Pro | 기본 모델 |
+| `iPhone19,3` | iPhone 18 Pro Max | 미국형 |
+| `iPhone19,7` | iPhone 18 Pro Max | 글로벌형 |
+| `iPhone19,4` | iPhone Duo | 폴더블 모델 |
+
+- 로컬 검증·재빌드는 `gradle check run --no-daemon`입니다. wrapper가 준비된 환경은 `./gradlew check run --no-daemon`을 사용합니다.
+- `src/test/java/com/whatdevice/DeviceDataTest.java`가 최신 iPhone 식별자·지역별 모델·한글 표기를 외부 테스트 라이브러리 없이 검증합니다.
 
 ---
 
 ## 면책
 
-비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717). 본 사이트는 Apple Inc.와 제휴 관계가 없습니다.
+비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717), DeviceKit·UFADE 보강 자료. 본 사이트는 Apple Inc.와 제휴 관계가 없습니다.
