@@ -33,6 +33,16 @@ public class DeviceDataTest {
         for (String identifier : List.of("i386", "x86_64", "arm64")) {
             assert "iPhone Simulator".equals(data.get(identifier)) : identifier;
         }
+        assert BuildSite.readDeviceDetails("iPhone15,2").contains("A16 Bionic");
+        assert BuildSite.readDeviceDetails("iPhone19,2").contains("A20 Pro");
+        assert BuildSite.readDeviceDetails("iPhone19,3").contains("글로벌형");
+        assert BuildSite.readDeviceDetails("iPhone19,3").equals(BuildSite.readDeviceDetails("iPhone19,7"));
+        assert BuildSite.readDeviceDetails("iPhone19,4").contains("폴딩 디스플레이");
+        assert BuildSite.readDeviceDetails("i386").isEmpty();
+        String introduction = BuildSite.readContent("home-intro.html");
+        String directory = CategoryPages.homeSections(CategoryPages.groupByCategory(devices), introduction);
+        assert directory.indexOf("id=\"directory\"") < directory.indexOf("id=\"lookup-guide\"");
+        assert directory.indexOf("id=\"lookup-guide\"") < directory.indexOf("class=\"home-category\"");
         System.out.println("최신 iPhone 식별자 10개·지역별 중복 모델·한글 표기 검증 통과");
     }
 }

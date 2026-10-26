@@ -99,11 +99,12 @@ final class CategoryPages {
      * 전체를 나열하더라도 허브 링크는 함께 남긴다 — 허브 자체가 색인 대상이고,
      * 기기 상세의 푸터·breadcrumb 역링크가 향하는 목적지이기 때문이다.
      */
-    static String homeSections(Map<String, List<BuildSite.Device>> byCategory) {
+    static String homeSections(Map<String, List<BuildSite.Device>> byCategory, String introduction) {
         StringBuilder sb = new StringBuilder();
         // id=directory: search.js 가 검색 중에만 숨긴다. 검색어가 비면 이 정적 목록이 기본 화면이며,
         // 크롤러가 JS 없이 받는 화면과 사용자가 처음 보는 화면이 같아진다.
         sb.append("<div id=\"directory\" class=\"device-directory\">\n");
+        sb.append(introduction);
         for (Map.Entry<String, List<BuildSite.Device>> e : byCategory.entrySet()) {
             String category = BuildSite.esc(e.getKey());
             List<BuildSite.Device> list = e.getValue();

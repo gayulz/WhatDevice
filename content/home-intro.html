@@ -1,0 +1,36 @@
+<section class="content" aria-labelledby="lookup-guide">
+  <h2 id="lookup-guide">로그에 나온 모델 코드로 기종을 확인하세요</h2>
+  <p><code class="mono">iPhone15,2</code>는 <strong>iPhone 14 Pro</strong>의 식별자입니다.
+     WhatDevice는 크래시 로그나 애널리틱스에 표시된 식별자를 기종명으로 찾아보고,
+     영문·한글 기종명으로 해당 식별자를 확인하는 검색 도구입니다.</p>
+  <ol>
+    <li>로그의 식별자를 숫자와 쉼표까지 복사해 검색창에 입력합니다.</li>
+    <li>기종명을 알고 있다면 <a href="?q=아이폰%2014%20프로">아이폰 14 프로</a>처럼 이름으로 검색합니다.</li>
+    <li>검색 결과를 열어 식별자·기종명·관련 기기를 확인합니다.
+        식별자를 찾는 위치는 <a href="guide/find-from-logs.html">로그에서 모델 확인하는 방법</a>을 참고하세요.</li>
+  </ol>
+
+  <h3>식별자의 숫자를 제품 세대와 구분하세요</h3>
+  <p><code class="mono">iPhone15,2</code>의 숫자 15가 판매명인 iPhone 15를 뜻하지는 않습니다.
+     실제 기종은 iPhone 14 Pro입니다. 같은 방식으로 <code class="mono">iPhone19,2</code>는 iPhone 18 Pro에 대응합니다.
+     로그를 분석할 때는 숫자만 보고 판단하지 말고 전체 식별자를 대조하세요.</p>
+  <p>설정 화면의 <code class="mono">A</code>로 시작하는 모델 번호는 별도로 확인할 수 있습니다.
+     이 검색 도구는 <code class="mono">iPhone15,2</code> 형태의 머신 식별자를 다룹니다.
+     A 모델 번호를 찾고 있다면 <a href="https://support.apple.com/ko-kr/106343" target="_blank" rel="noopener noreferrer">Apple의 모델 번호 확인 방법</a>을 이용하세요.</p>
+
+  <h3>최근 추가된 iPhone 식별자</h3>
+  <ul>
+    <li><a href="device/iphone19-2.html">iPhone 18 Pro — iPhone19,2</a></li>
+    <li>iPhone 18 Pro Max — <a href="device/iphone19-3.html">iPhone19,3</a> · <a href="device/iphone19-7.html">iPhone19,7</a></li>
+    <li><a href="device/iphone19-4.html">iPhone Duo — iPhone19,4</a></li>
+  </ul>
+  <p>같은 기종명에도 지역별로 여러 식별자가 대응할 수 있습니다. 예를 들어 iPhone 18 Pro Max는
+     위의 두 식별자가 각각 검색됩니다.</p>
+
+  <h3>자료 확인 기준</h3>
+  <p>기본 식별자 목록은 <a href="https://gist.github.com/adamawolf/3048717" target="_blank" rel="noopener noreferrer">adamawolf의 공개 기기 목록</a>을 사용합니다.
+     위의 최신 iPhone 식별자 4개는 2026년 10월 26일
+     <a href="https://github.com/devicekit/DeviceKit/blob/master/Source/Device.generated.swift" target="_blank" rel="noopener noreferrer">DeviceKit</a>과
+     <a href="https://github.com/prosch88/UFADE/blob/main/ufade/irecv_devices.py" target="_blank" rel="noopener noreferrer">UFADE</a>의 기기 정의를 대조해 보강했습니다.
+     기기별로 추가한 제품 정보에는 Apple의 확인 자료를 연결했습니다.</p>
+</section>

@@ -121,6 +121,8 @@ python3 -m http.server 8000
 
 - 로컬 검증·재빌드는 `gradle check run --no-daemon`입니다. wrapper가 준비된 환경은 `./gradlew check run --no-daemon`을 사용합니다.
 - `src/test/java/com/whatdevice/DeviceDataTest.java`가 최신 iPhone 식별자·지역별 모델·한글 표기를 외부 테스트 라이브러리 없이 검증합니다.
+- 홈의 사용법·확인 기준은 `content/home-intro.html`에서 관리하며, 검색 중에는 기존 기기 목록과 함께 숨깁니다.
+- 출처를 확인한 기기별 보강 본문은 `content/device-*.html`에 둡니다. `BuildSite.readDeviceDetails`가 해당 식별자에 연결하며, 근거 자료가 없는 기기에는 추가 사양을 추정해서 표시하지 않습니다.
 
 ---
 

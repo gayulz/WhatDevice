@@ -436,6 +436,7 @@ public class BuildSite {
                     .replace("{{SLUG}}", esc(d.slug))
                     .replace("{{FAMILY}}", esc(d.familyKey) + ",x")
                     .replace("{{RELATED}}", related)
+                    .replace("{{MODEL_DETAILS}}", readDeviceDetails(d.identifier))
                     .replace("{{CATEGORY_HREF}}", esc(CategoryPages.href("../", d.category)))
                     // 기기 상세는 고유 본문이 짧다(식별자·기종명 두 문자열). 광고를 3개 붙이면
                     // 콘텐츠 대비 광고 비율이 과해져 색인에서 불리하므로 본문 하단 1개만 둔다.
@@ -507,7 +508,7 @@ public class BuildSite {
 
         String main =
             "<section class=\"hero\">\n" +
-            "  <h1>" + esc(SITE_NAME) + "</h1>\n" +
+            "  <h1>애플 기기 식별자 검색</h1>\n" +
             "  <p class=\"lead\">" + esc(SITE_DESC) + "</p>\n" +
             "  <p class=\"hint\">예: <code class=\"mono\">iPhone15,2</code> 또는 <code class=\"mono\">iPhone 14 Pro</code>, <code class=\"mono\">아이폰 14 프로</code></p>\n" +
             "  <div class=\"search-box\">\n" +
@@ -520,10 +521,10 @@ public class BuildSite {
             coupangHtml() +
             // 검색 결과는 JS 가 그리므로 크롤러에게는 빈 영역이다. 크롤 경로 확보를 위해
             // 카테고리 허브와 기기 링크를 정적 HTML 로 함께 내보낸다.
-            CategoryPages.homeSections(byCategory) +
+            CategoryPages.homeSections(byCategory, readContent("home-intro.html")) +
             adSlotHtml(2);
 
-        String title = SITE_NAME + " — 애플 기기 식별자 변환기";
+        String title = "아이폰·아이패드 기기 식별자 검색 | " + SITE_NAME;
         String desc = "iPhone15,2 같은 애플 기기 식별자(모델 코드)를 기종명으로, 또 그 반대로 즉시 변환·검색합니다.";
         String canonical = SITE_URL + "/";
         String scripts = "<script src=\"data.js\"></script>\n<script src=\"search.js\"></script>";
@@ -638,6 +639,17 @@ public class BuildSite {
 
     static String readContent(String name) throws IOException {
         return new String(Files.readAllBytes(CONTENT.resolve(name)), StandardCharsets.UTF_8);
+    }
+
+    static String readDeviceDetails(String identifier) throws IOException {
+        String name = switch (identifier) {
+            case "iPhone15,2" -> "device-iphone-14-pro.html";
+            case "iPhone19,2" -> "device-iphone-18-pro.html";
+            case "iPhone19,3", "iPhone19,7" -> "device-iphone-18-pro-max.html";
+            case "iPhone19,4" -> "device-iphone-duo.html";
+            default -> null;
+        };
+        return name == null ? "" : readContent(name);
     }
 
     /** HTML 텍스트 이스케이프 (속성/본문 텍스트용). */
