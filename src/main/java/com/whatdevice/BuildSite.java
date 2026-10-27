@@ -43,87 +43,6 @@ public class BuildSite {
     static final String DISCLAIMER = "비공식 참고용 데이터입니다. 출처: adamawolf/apple_device_identifiers (gist 3048717), DeviceKit·UFADE 보강 자료";
 
     /**
-     * 카카오 애드핏 광고 슬롯 정의. 한 페이지 안에서 같은 광고단위 ID를 두 번 쓰면
-     * 애드핏 SDK가 하나만 렌더링하므로, 슬롯 위치마다 별도 광고단위를 발급받아 채운다.
-     *
-     * <p>각 행: {PC 단위ID, PC 가로, PC 세로, 모바일 단위ID, 모바일 가로, 모바일 세로}
-     * ID가 비어 있는 슬롯은 마크업 자체를 만들지 않으므로 빈 채로 두어도 안전하다.
-     */
-    static final String[][] AD_SLOTS = {
-            // 0번 — 본문 상단 (기존 발급분)
-            {"DAN-iE1zbQKstH7OpKgG", "728", "90", "DAN-Vx7eTegLs1VGrrwp", "320", "100"},
-            // 1번 — 본문 중단
-            {"DAN-WskrFomUCrWzoHhN", "728", "90", "DAN-cMiMxf4Cx55QKekZ", "300", "250"},
-            // 2번 — 본문 하단
-            {"DAN-PzvZoJzyVSkvsJ4v", "728", "90", "DAN-akCDuUdchdUs1Pmi", "320", "100"},
-    };
-
-    /**
-     * 광고 슬롯 마크업을 만든다. PC/모바일 단위를 둘 다 박고 CSS 미디어 쿼리로 토글한다.
-     * 카카오 SDK(layout.html 의 ba.min.js)가 페이지 내 모든 .kakao_ad_area 를 자동 스캔한다.
-     *
-     * @param slot AD_SLOTS 인덱스. 범위를 벗어나거나 ID가 비었으면 빈 문자열을 돌려준다.
-     */
-    static String adSlotHtml(int slot) {
-        if (slot < 0 || slot >= AD_SLOTS.length) {
-            return "";
-        }
-        String[] s = AD_SLOTS[slot];
-        String pcUnit = s[0];
-        String mobileUnit = s[3];
-        if (pcUnit.isEmpty() && mobileUnit.isEmpty()) {
-            return ""; // 미발급 슬롯 — 빈 박스가 생기지 않도록 마크업을 통째로 생략
-        }
-        StringBuilder sb = new StringBuilder();
-        // CLS 방지용 예약 높이를 CSS 변수로 넘긴다(슬롯마다 크기가 달라서 인라인으로 지정).
-        sb.append("<div class=\"ad-slot\" aria-hidden=\"true\" style=\"--ad-h-mobile:")
-          .append(s[5]).append("px;--ad-h-pc:").append(s[2]).append("px;\">\n");
-        if (!pcUnit.isEmpty()) {
-            sb.append("  <ins class=\"kakao_ad_area ad-pc\" style=\"display:none;\"\n")
-              .append("       data-ad-unit=\"").append(pcUnit).append("\"\n")
-              .append("       data-ad-width=\"").append(s[1])
-              .append("\" data-ad-height=\"").append(s[2]).append("\"></ins>\n");
-        }
-        if (!mobileUnit.isEmpty()) {
-            sb.append("  <ins class=\"kakao_ad_area ad-mobile\" style=\"display:none;\"\n")
-              .append("       data-ad-unit=\"").append(mobileUnit).append("\"\n")
-              .append("       data-ad-width=\"").append(s[4])
-              .append("\" data-ad-height=\"").append(s[5]).append("\"></ins>\n");
-        }
-        sb.append("</div>\n");
-        return sb.toString();
-    }
-
-    /** 쿠팡 파트너스 배너(고객 관심 기반 추천, carousel) 발급 정보. */
-    static final String COUPANG_ID = "1026302";
-    static final String COUPANG_TRACKING = "AF3075571";
-    /** 발급 사이즈. 모바일에서는 컨테이너 폭에 맞춰 줄여 넣는다(가로 스크롤 방지). */
-    static final int COUPANG_WIDTH = 680;
-    static final int COUPANG_HEIGHT = 140;
-
-    /**
-     * 쿠팡 파트너스 추천 배너 마크업. SDK(g.js)는 layout.html 에서 한 번만 로드하고,
-     * 여기서는 삽입 위치에 생성자 호출 스크립트만 둔다(스크립트 위치에 iframe 이 꽂힌다).
-     *
-     * <p>페이지당 1개만 쓴다 — 애드핏 슬롯과 겹쳐 광고 비율이 과해지면 색인에 불리하다.
-     */
-    static String coupangHtml() {
-        return "<div class=\"coupang-slot\">\n"
-             + "  <script>\n"
-             + "    (function () {\n"
-             + "      if (typeof PartnersCoupang === 'undefined') return;\n"
-             + "      var box = document.currentScript.parentElement;\n"
-             + "      var w = Math.max(300, Math.min(" + COUPANG_WIDTH + ", box.clientWidth));\n"
-             + "      new PartnersCoupang.G({\n"
-             + "        id: " + COUPANG_ID + ", trackingCode: \"" + COUPANG_TRACKING + "\", subId: null,\n"
-             + "        template: \"carousel\", width: String(w), height: \"" + COUPANG_HEIGHT + "\"\n"
-             + "      });\n"
-             + "    })();\n"
-             + "  </script>\n"
-             + "</div>\n";
-    }
-
-    /**
      * 사이트에 포함할 기기 카테고리(=식별자 접두어). 여기에 "iPod","Watch","Mac" 등을
      * 추가하면 범위가 바로 넓어진다. (지시서: 카테고리 토글로 확장 가능하게 설계)
      */
@@ -244,7 +163,7 @@ public class BuildSite {
             }
             // 기존 호출자(buildDevices)는 entry.getKey()를 name, entry.getValue()를 identifier로 사용.
             // 동일 이름이 여러 식별자에 대응하므로(예: iPhone Simulator 3개) Map 키를 식별자로 두면 안 됨.
-            // 키 충돌 방지를 위해 식별자를 키로 두는 대신 name+" "+identifier 같은 합성 키 사용 가능하지만,
+            // 키 충돌 방지를 위해 식별자를 키로 두는 대신 name+"\0"+identifier 같은 합성 키 사용 가능하지만,
             // buildDevices는 entrySet 순회만 하므로 LinkedHashMap에 동일 이름을 안전하게 적재하려면
             // 식별자를 키로 사용한다(고유). 대신 buildDevices에서 key=identifier, value=name 으로 해석하도록 수정.
             merged.put(identifier, name);
@@ -426,7 +345,11 @@ public class BuildSite {
         Path dir = DIST.resolve("device");
         Files.createDirectories(dir);
         for (Device d : devices) {
-            String related = buildRelatedList(d, families.get(d.familyKey));
+            List<Device> family = families.get(d.familyKey);
+            String related = buildRelatedList(d, family);
+            List<String[]> faq = SeoMarkup.deviceFaq(d, family, "../");
+            String categoryUrl = SITE_URL + "/category/" + CategoryPages.slugOf(d.category) + ".html";
+            String canonical = SITE_URL + "/device/" + d.slug + ".html";
             String main = deviceTpl
                     .replace("{{BASE}}", "../")
                     .replace("{{IDENTIFIER}}", esc(d.identifier))
@@ -438,18 +361,22 @@ public class BuildSite {
                     .replace("{{RELATED}}", related)
                     .replace("{{MODEL_DETAILS}}", readDeviceDetails(d.identifier))
                     .replace("{{CATEGORY_HREF}}", esc(CategoryPages.href("../", d.category)))
-                    // 기기 상세는 고유 본문이 짧다(식별자·기종명 두 문자열). 광고를 3개 붙이면
-                    // 콘텐츠 대비 광고 비율이 과해져 색인에서 불리하므로 본문 하단 1개만 둔다.
+                    .replace("{{DEFINITION}}", SeoMarkup.definitionHtml(d))
+                    .replace("{{FAQ}}", SeoMarkup.faqHtml(faq))
+                    // 기기 상세는 고유 본문이 짧아(식별자·기종명·계열) 광고 비중이 커지면 색인에 불리하다.
+                    // 상단은 비우고 애드핏 2 + 쿠팡 1 로 제한한다. 색인이 확인되면 그때 늘린다.
                     .replace("{{AD_TOP}}", "")
-                    // 중단은 애드핏 대신 쿠팡 추천 배너 1개(같은 계열 목록과 FAQ 사이)
-                    .replace("{{AD_MID}}", coupangHtml())
-                    .replace("{{AD_BOTTOM}}", adSlotHtml(2));
+                    .replace("{{AD_MID}}", Ads.adSlotHtml(1))      // 같은 계열 목록 아래
+                    .replace("{{AD_BOTTOM}}", Ads.coupangHtml())   // FAQ 아래
+                    .replace("{{AD_END}}", Ads.adSlotHtml(2))      // 뒤로가기 링크 아래
+                    + SeoMarkup.script(
+                            SeoMarkup.breadcrumb(new String[]{"홈", SITE_URL + "/"},
+                                    new String[]{d.category, categoryUrl},
+                                    new String[]{d.identifier, canonical}),
+                            SeoMarkup.faqPage(faq));
 
-            String title = d.identifier + " - " + d.name + " | " + SITE_NAME;
-            String desc = d.identifier + "는 " + d.name + "의 애플 모델 식별자입니다. 식별자와 기종명을 양방향으로 확인하세요.";
-            String canonical = SITE_URL + "/device/" + d.slug + ".html";
-
-            String html = renderLayout(layout, "../", title, desc, canonical, main, "");
+            String html = renderLayout(layout, "../", SeoMarkup.title(d),
+                    SeoMarkup.description(d, family == null ? 1 : family.size()), canonical, main, "");
             Files.write(dir.resolve(d.slug + ".html"), html.getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -516,13 +443,14 @@ public class BuildSite {
             "  </div>\n" +
             "  <p class=\"count muted\">현재 " + total + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + " · Watch " + watch + " · iPod " + ipod + " · Simulator " + simulator + ")</p>\n" +
             "</section>\n" +
-            adSlotHtml(0) +
+            Ads.adSlotHtml(0) +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n" +
-            coupangHtml() +
+            Ads.coupangHtml() +
             // 검색 결과는 JS 가 그리므로 크롤러에게는 빈 영역이다. 크롤 경로 확보를 위해
             // 카테고리 허브와 기기 링크를 정적 HTML 로 함께 내보낸다.
             CategoryPages.homeSections(byCategory, readContent("home-intro.html")) +
-            adSlotHtml(2);
+            Ads.adSlotHtml(2) +
+            SeoMarkup.script(SeoMarkup.webSite());
 
         String title = "아이폰·아이패드 기기 식별자 검색 | " + SITE_NAME;
         String desc = "iPhone15,2 같은 애플 기기 식별자(모델 코드)를 기종명으로, 또 그 반대로 즉시 변환·검색합니다.";
@@ -565,12 +493,17 @@ public class BuildSite {
                     .replace("{{SITE_NAME}}", SITE_NAME);
             // 가이드 페이지에만 본문 끝에 광고 슬롯 추가 (정책 페이지는 광고 미노출 — 신뢰도 보호)
             if (p[0].startsWith("guide/")) {
-                body = adSlotHtml(0) + "\n" + body + "\n" + adSlotHtml(2);
+                body = Ads.adSlotHtml(0) + "\n" + body + "\n" + Ads.adSlotHtml(2);
             }
-            // 본문 중간의 {{COUPANG}} 토큰 치환. 정책 페이지에는 토큰이 없어 그대로 통과한다.
-            body = body.replace("{{COUPANG}}", p[0].startsWith("guide/") ? coupangHtml() : "");
+            // 본문 중간의 {{COUPANG}}·{{AD_MID}} 토큰 치환. 정책 페이지에는 토큰이 없어 그대로 통과한다.
+            body = body.replace("{{COUPANG}}", p[0].startsWith("guide/") ? Ads.coupangHtml() : "")
+                       .replace("{{AD_MID}}", p[0].startsWith("guide/") ? Ads.adSlotHtml(1) : "");
             String title = p[2] + " | " + SITE_NAME;
             String canonical = SITE_URL + "/" + p[0];
+            if (p[0].startsWith("guide/")) {
+                body += SeoMarkup.script(SeoMarkup.breadcrumb(new String[]{"홈", SITE_URL + "/"},
+                        new String[]{p[2], canonical}));
+            }
             String html = renderLayout(layout, p[1], title, p[3], canonical, body, "");
             Path out = DIST.resolve(p[0]);
             Files.createDirectories(out.getParent());
@@ -628,6 +561,7 @@ public class BuildSite {
                 .replace("{{DESCRIPTION}}", esc(description))
                 .replace("{{CANONICAL}}", esc(canonical))
                 .replace("{{DISCLAIMER}}", esc(DISCLAIMER))
+                .replace("{{SITE_VERIFICATION}}", SeoMarkup.verificationMetas())
                 .replace("{{CATEGORY_NAV}}", CategoryPages.footerNav(base))
                 .replace("{{SCRIPTS}}", scripts)
                 .replace("{{MAIN}}", main); // MAIN 은 이미 HTML 이므로 esc 하지 않음

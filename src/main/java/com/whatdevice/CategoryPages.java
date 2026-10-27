@@ -105,6 +105,7 @@ final class CategoryPages {
         // 크롤러가 JS 없이 받는 화면과 사용자가 처음 보는 화면이 같아진다.
         sb.append("<div id=\"directory\" class=\"device-directory\">\n");
         sb.append(introduction);
+        int index = 0;
         for (Map.Entry<String, List<BuildSite.Device>> e : byCategory.entrySet()) {
             String category = BuildSite.esc(e.getKey());
             List<BuildSite.Device> list = e.getValue();
@@ -121,9 +122,31 @@ final class CategoryPages {
               .append(HOME_PREVIEW > 0 ? " 전체 " + list.size() + "종 보기 →" : " 목록 페이지 →")
               .append("</a></p>\n")
               .append("</section>\n");
+            // 목록이 긴 앞쪽 두 카테고리(iPhone·iPad) 뒤에 광고를 한 개씩 둔다.
+            if (index == 0) {
+                sb.append(Ads.adSlotHtml(1));
+            } else if (index == 1) {
+                sb.append(Ads.coupangHtml());
+            }
+            index++;
         }
         sb.append("</div>\n");
         return sb.toString();
+    }
+
+    /** 이 개수 이상이면 허브 목록을 가운데에서 끊어 광고를 넣는다. */
+    static final int MID_AD_MIN_ITEMS = 30;
+
+    /** 허브의 기기 목록. 긴 목록(iPhone·iPad·Watch)은 절반 지점에 애드핏 1번을 둔다. */
+    static String deviceListWithMidAd(List<BuildSite.Device> list) {
+        String open = "<ul class=\"related-list device-index\">\n";
+        if (list.size() < MID_AD_MIN_ITEMS) {
+            return open + deviceLinks(list, "../", 0) + "</ul>\n";
+        }
+        int half = list.size() / 2;
+        return open + deviceLinks(list.subList(0, half), "../", 0) + "</ul>\n"
+                + Ads.adSlotHtml(1)
+                + open + deviceLinks(list.subList(half, list.size()), "../", 0) + "</ul>\n";
     }
 
     /** 카테고리 허브 페이지를 카테고리 수만큼 생성한다. */
@@ -134,6 +157,7 @@ final class CategoryPages {
         for (Map.Entry<String, List<BuildSite.Device>> e : byCategory.entrySet()) {
             String category = BuildSite.esc(e.getKey());
             List<BuildSite.Device> list = e.getValue();
+            String canonical = BuildSite.SITE_URL + "/category/" + slugOf(e.getKey()) + ".html";
 
             String main =
                     "<nav class=\"breadcrumb\" aria-label=\"위치\">\n"
@@ -144,17 +168,17 @@ final class CategoryPages {
                   + "<h1>" + category + " 기기 식별자 전체 목록</h1>\n"
                   + "<p class=\"lead\">" + category + " 계열 " + list.size()
                   + "종의 애플 모델 식별자와 기종명입니다. 항목을 누르면 상세 정보로 이동합니다.</p>\n"
-                  + "<ul class=\"related-list device-index\">\n"
-                  + deviceLinks(list, "../", 0)
-                  + "</ul>\n"
-                  + BuildSite.coupangHtml()
-                  + BuildSite.adSlotHtml(2);
+                  + deviceListWithMidAd(list)
+                  + Ads.coupangHtml()
+                  + Ads.adSlotHtml(2)
+                  + SeoMarkup.script(SeoMarkup.breadcrumb(
+                          new String[]{"홈", BuildSite.SITE_URL + "/"},
+                          new String[]{e.getKey(), canonical}));
 
             String title = e.getKey() + " 기기 식별자 전체 목록 (" + list.size() + "종) | "
                     + BuildSite.SITE_NAME;
             String desc = e.getKey() + " 계열 애플 모델 식별자 " + list.size()
                     + "종을 기종명과 함께 정리한 목록입니다.";
-            String canonical = BuildSite.SITE_URL + "/category/" + slugOf(e.getKey()) + ".html";
 
             String html = BuildSite.renderLayout(layout, "../", title, desc, canonical, main, "");
             Files.write(dir.resolve(slugOf(e.getKey()) + ".html"),

@@ -92,10 +92,17 @@ python3 -m http.server 8000
 `templates/layout.html` 에 실제 ID 가 들어가 있습니다.
 
 - Google Search Console 소유권 확인 메타태그 · Google Tag Manager (`GTM-5N22XGPL`)
-- 카카오 애드핏 — 슬롯 정의는 `BuildSite.AD_SLOTS`, 마크업은 `.ad-slot`
-- 쿠팡 파트너스 추천 배너 — 페이지당 1개, 마크업은 `.coupang-slot`
+- 카카오 애드핏 — 슬롯 정의는 `Ads.AD_SLOTS`(3슬롯), 마크업은 `.ad-slot`. 한 페이지에 같은 단위 ID를 두 번 쓸 수 없어 페이지당 최대 3개
+- 쿠팡 파트너스 추천 배너 — 마크업은 `.coupang-slot`
 
-정책 페이지(`policy/*`)에는 광고를 넣지 않습니다.
+페이지 유형별 개수(애드핏 / 쿠팡): 홈 3 / 2 · 허브 1~2 / 1(30종 이상 목록은 중간에 1개 추가) · 가이드 3 / 1 · 기기 상세 2 / 1.
+기기 상세는 고유 본문이 짧아 광고 비중을 낮게 유지한다. 색인이 확인되면 늘린다. 정책 페이지(`policy/*`)에는 광고를 넣지 않습니다.
+
+### 검색·AI 검색 최적화
+
+- 구조화 데이터(JSON-LD)는 `SeoMarkup`이 만든다. 홈 `WebSite`, 허브·상세·가이드 `BreadcrumbList`, 상세 `FAQPage`.
+  화면의 FAQ와 `FAQPage`는 같은 문구에서 생성한다(구글은 화면과 다른 구조화 데이터를 무시한다).
+- 네이버 서치어드바이저·Bing 웹마스터 소유확인 코드는 `SeoMarkup.NAVER_VERIFICATION`·`BING_VERIFICATION`에 넣는다. 비어 있으면 메타를 출력하지 않는다.
 
 ---
 
