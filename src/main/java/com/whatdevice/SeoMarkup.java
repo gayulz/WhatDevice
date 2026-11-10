@@ -128,10 +128,14 @@ final class SeoMarkup {
         List<String[]> faq = new ArrayList<>();
         faq.add(new String[]{id + " 식별자는 어떤 기종인가요?",
                 definitionHtml(d) + " 앱 크래시 로그, 애널리틱스, 일부 진단 화면 등에서 기종명 대신 이 식별자가 표시됩니다."});
+        // Mac 에서 hw.machine 은 아키텍처(arm64·x86_64)를 돌려주고, 모델 식별자는 hw.model 이 돌려준다.
+        String where = d.category.equals("Mac")
+                ? "Mac의 시스템 리포트(Apple 메뉴의 \"이 Mac에 관하여\")에 나오는 모델 식별자 항목, 크래시 리포트의 기기 정보 필드, 또는 "
+                  + "터미널의 <code class=\"mono\">sysctl hw.model</code> 결과에서 볼 수 있습니다. "
+                : "크래시 리포트의 기기 정보 필드, 모바일 애널리틱스의 디바이스 모델 항목, 또는 "
+                  + "<code class=\"mono\">uname</code> / <code class=\"mono\">sysctl hw.machine</code> 계열 시스템 정보에서 볼 수 있습니다. ";
         faq.add(new String[]{id + " 식별자는 어디서 확인할 수 있나요?",
-                "크래시 리포트의 기기 정보 필드, 모바일 애널리틱스의 디바이스 모델 항목, 또는 "
-                + "<code class=\"mono\">uname</code> / <code class=\"mono\">sysctl hw.machine</code> 계열 시스템 정보에서 볼 수 있습니다. "
-                + "자세한 방법은 <a href=\"" + base + "guide/find-from-logs.html\">로그에서 기기 모델 확인하는 법</a> 가이드를 참고하세요."});
+                where + "자세한 방법은 <a href=\"" + base + "guide/find-from-logs.html\">로그에서 기기 모델 확인하는 법</a> 가이드를 참고하세요."});
         if (family != null && family.size() > 1) {
             faq.add(new String[]{BuildSite.esc(d.familyKey) + ",x 계열에는 어떤 기기가 있나요?",
                     "식별자 앞부분이 같아 한 계열로 묶이는 기기는 " + familyList(family) + "입니다."});

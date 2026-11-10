@@ -46,7 +46,7 @@ public class BuildSite {
      * 사이트에 포함할 기기 카테고리(=식별자 접두어). 여기에 "iPod","Watch","Mac" 등을
      * 추가하면 범위가 바로 넓어진다. (지시서: 카테고리 토글로 확장 가능하게 설계)
      */
-    static final List<String> CATEGORIES = List.of("iPhone", "iPad", "Watch", "iPod", "Simulator");
+    static final List<String> CATEGORIES = List.of("iPhone", "iPad", "Mac", "Watch", "iPod", "Simulator");
 
     // 입출력 경로 (프로젝트 루트 기준 상대경로 — build.gradle 에서 workingDir 를 루트로 고정)
     static final Path DATA = Paths.get("data");
@@ -252,7 +252,8 @@ public class BuildSite {
         long watch = devices.stream().filter(d -> d.category.equals("Watch")).count();
         long ipod = devices.stream().filter(d -> d.category.equals("iPod")).count();
         long simulator = devices.stream().filter(d -> d.category.equals("Simulator")).count();
-        long total = iphone + ipad + watch + ipod + simulator;
+        long mac = devices.stream().filter(d -> d.category.equals("Mac")).count();
+        long total = iphone + ipad + mac + watch + ipod + simulator;
 
         String main =
             "<section class=\"hero\">\n" +
@@ -262,7 +263,7 @@ public class BuildSite {
             "  <div class=\"search-box\">\n" +
             "    <input id=\"q\" type=\"search\" autocomplete=\"off\" placeholder=\"식별자 또는 기종명으로 검색…\" aria-label=\"기기 검색\">\n" +
             "  </div>\n" +
-            "  <p class=\"count muted\">현재 " + total + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + " · Watch " + watch + " · iPod " + ipod + " · Simulator " + simulator + ")</p>\n" +
+            "  <p class=\"count muted\">현재 " + total + "개 기기 수록 (iPhone " + iphone + " · iPad " + ipad + " · Mac " + mac + " · Watch " + watch + " · iPod " + ipod + " · Simulator " + simulator + ")</p>\n" +
             "</section>\n" +
             Ads.adSlotHtml(0) +
             "<section id=\"results\" class=\"results\" aria-live=\"polite\"></section>\n" +

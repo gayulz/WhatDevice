@@ -43,6 +43,17 @@ public class DeviceDataTest {
         String directory = CategoryPages.homeSections(CategoryPages.groupByCategory(devices), introduction);
         assert directory.indexOf("id=\"directory\"") < directory.indexOf("id=\"lookup-guide\"");
         assert directory.indexOf("id=\"lookup-guide\"") < directory.indexOf("class=\"home-category\"");
+        // Mac: Apple 지원 문서 기준 보강. 두 식별자 체계(MacBookPro18,3 · Mac14,2)와 iMac 접두어가 모두 Mac 으로 묶인다.
+        assert "MacBook Pro (14-inch, 2021)".equals(data.get("MacBookPro18,3"));
+        assert "MacBook Air (M2, 2022)".equals(data.get("Mac14,2"));
+        assert data.get("MacBookPro15,1").contains(" / ") : "여러 판매 모델이 쓰는 식별자는 이름을 잇는다";
+        for (String identifier : List.of("MacBookPro18,3", "Mac14,2", "iMac21,1", "Macmini9,1", "iMacPro1,1")) {
+            assert "Mac".equals(DeviceCatalog.categoryOf(identifier)) : identifier;
+        }
+        assert DeviceCatalog.toKorean("MacBook Pro (14-inch, 2021)").equals("맥북 프로 (14-인치, 2021)");
+        assert DeviceCatalog.toKorean("iMac (24-inch, M1, 2021)").startsWith("아이맥 ");
+        assert DeviceCatalog.toKorean("Mac Studio (2022)").equals("맥 스튜디오 (2022)");
+        assert DeviceCatalog.toKorean("Mac mini (M1, 2020)").equals("맥 미니 (M1, 2020)");
         System.out.println("최신 iPhone 식별자 10개·지역별 중복 모델·한글 표기 검증 통과");
 
         verifyAds(devices);
@@ -87,6 +98,9 @@ public class DeviceDataTest {
         assert script.startsWith("<script type=\"application/ld+json\">") && script.endsWith("</script>\n");
         assert count(script, "\"position\"") == 2 && count(script, "</script>") == 1 : script;
 
+        BuildSite.Device air = devices.stream().filter(d -> d.identifier.equals("Mac14,2")).findFirst().get();
+        String macFaq = SeoMarkup.deviceFaq(air, List.of(air), "../").get(1)[1];
+        assert macFaq.contains("hw.model") && !macFaq.contains("hw.machine") : "Mac 은 hw.model 로 안내";
         assert SeoMarkup.title(pro).contains("아이폰 14 프로") && SeoMarkup.title(pro).contains("iPhone15,2");
         assert SeoMarkup.description(pro, family.size()).contains("iPhone15,x 계열 " + family.size() + "종");
         assert !SeoMarkup.description(pro, 1).contains("계열");

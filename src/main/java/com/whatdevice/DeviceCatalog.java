@@ -105,6 +105,10 @@ final class DeviceCatalog {
         if (identifier.equals("i386") || identifier.equals("x86_64") || identifier.equals("arm64")) {
             return "Simulator";
         }
+        // Mac 은 MacBookPro18,3 · Mac14,2 처럼 "Mac" 으로 시작하지만 iMac 계열만 접두어가 다르다.
+        if (identifier.startsWith("iMac")) {
+            return "Mac";
+        }
         for (String c : BuildSite.CATEGORIES) {
             if (c.equals("Simulator")) {
                 continue; // 위 명시 분기에서 처리됨
@@ -137,6 +141,12 @@ final class DeviceCatalog {
             {"iPod touch", "아이팟 터치"},
             {"iPhone Simulator", "아이폰 시뮬레이터"},
             {"Pro Max", "프로 맥스"},
+            // Mac: MacBook·iMac 이 Mac 보다 먼저 와야 "맥Book" 같은 반쪽 치환이 생기지 않는다.
+            {"MacBook", "맥북"},
+            {"iMac", "아이맥"},
+            {"Mac", "맥"},
+            {"Studio", "스튜디오"},
+            {"Retina", "레티나"},
             // 기본 카테고리
             {"iPhone", "아이폰"},
             {"iPad", "아이패드"},
