@@ -13,7 +13,7 @@ import java.util.List;
 final class SeoMarkup {
 
     /** 네이버 서치어드바이저 소유확인 코드. 비어 있으면 메타를 만들지 않는다. */
-    static final String NAVER_VERIFICATION = "";
+    static final String NAVER_VERIFICATION = "6c74a1b76cdcdee53e5d85843d84bdae5ec8324e";
     /** Bing 웹마스터 도구 소유확인 코드. 비어 있으면 메타를 만들지 않는다. */
     static final String BING_VERIFICATION = "";
 
