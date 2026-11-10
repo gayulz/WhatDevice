@@ -18,12 +18,12 @@ final class Ads {
      * ID가 비어 있는 슬롯은 마크업 자체를 만들지 않으므로 빈 채로 두어도 안전하다.
      */
     static final String[][] AD_SLOTS = {
-            // 0번 — 본문 상단 (기존 발급분)
-            {"DAN-iE1zbQKstH7OpKgG", "728", "90", "DAN-Vx7eTegLs1VGrrwp", "320", "100"},
-            // 1번 — 본문 중단 (모바일 300x250 이라 긴 목록·본문의 중간에 둔다)
-            {"DAN-WskrFomUCrWzoHhN", "728", "90", "DAN-cMiMxf4Cx55QKekZ", "300", "250"},
+            // 0번 — 본문 상단 (what-device.store 매체, 2026-11-10 재발급)
+            {"DAN-2WViGMXlZzuDOjKw", "728", "90", "DAN-Z3UFY3pNIJDAoHvQ", "320", "100"},
+            // 1번 — 본문 중단 (긴 목록·본문의 중간)
+            {"DAN-GD1oo66FNNU2Dod5", "728", "90", "DAN-jhc9yLJP05k5D7j5", "320", "100"},
             // 2번 — 본문 하단
-            {"DAN-PzvZoJzyVSkvsJ4v", "728", "90", "DAN-akCDuUdchdUs1Pmi", "320", "100"},
+            {"DAN-MnNH4FKIqk1DI6lM", "728", "90", "DAN-zotKPRyynw2WKGW3", "320", "100"},
     };
 
     /**
