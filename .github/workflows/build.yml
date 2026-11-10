@@ -132,3 +132,25 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  # 배포 후 IndexNow(Bing·Yandex 등)에 사이트맵의 URL 을 알린다. Bing 색인은 ChatGPT 검색·Copilot 의 원천이다.
+  # 키 파일 static/e285e930d6263ca0aaa6d0cb7b941fc3.txt 는 공개가 전제인 값이다. 키 파일 위치보다 아래 경로의 URL 만 제출할 수 있다.
+  # 주간 동기화 실행에서는 보내지 않는다(내용이 바뀐 push 때만). 실패해도 배포는 이미 끝났으므로 잡을 실패시키지 않는다.
+  indexnow:
+    needs: deploy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Ping IndexNow
+        run: |
+          key=e285e930d6263ca0aaa6d0cb7b941fc3
+          site=$(grep -oE 'SITE_URL = "[^"]+"' src/main/java/com/whatdevice/BuildSite.java | cut -d'"' -f2)
+          host=$(echo "$site" | cut -d/ -f3)
+          sleep 60  # Pages CDN 반영 대기
+          urls=$(curl -sSL --fail "$site/sitemap.xml" | grep -oE '<loc>[^<]+' | sed 's/<loc>//' | jq -R . | jq -sc .)
+          body=$(jq -nc --arg h "$host" --arg k "$key" --arg l "$site/$key.txt" --argjson u "$urls" '{host:$h,key:$k,keyLocation:$l,urlList:$u}')
+          code=$(curl -s -o /tmp/indexnow.out -w '%{http_code}' -X POST https://api.indexnow.org/indexnow \
+            -H 'Content-Type: application/json; charset=utf-8' -d "$body")
+          echo "IndexNow HTTP $code ($(echo "$urls" | jq length)개 URL)"; cat /tmp/indexnow.out || true
+          case "$code" in 200|202) ;; *) echo "::warning::IndexNow 응답 $code" ;; esac

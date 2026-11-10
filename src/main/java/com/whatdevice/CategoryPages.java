@@ -137,16 +137,49 @@ final class CategoryPages {
     /** 이 개수 이상이면 허브 목록을 가운데에서 끊어 광고를 넣는다. */
     static final int MID_AD_MIN_ITEMS = 30;
 
-    /** 허브의 기기 목록. 긴 목록(iPhone·iPad·Watch)은 절반 지점에 애드핏 1번을 둔다. */
-    static String deviceListWithMidAd(List<BuildSite.Device> list) {
-        String open = "<ul class=\"related-list device-index\">\n";
-        if (list.size() < MID_AD_MIN_ITEMS) {
-            return open + deviceLinks(list, "../", 0) + "</ul>\n";
+    /**
+     * 허브의 기기 목록을 식별자 계열(iPhone15,x 등)별 소제목으로 나눈다.
+     * 링크만 나열한 허브가 "크롤링됨 - 색인 생성되지 않음" 판정을 받아(2026-11 GSC, ipad.html),
+     * 계열마다 어떤 기종이 묶이는지를 문장으로 보여 줘 페이지 고유 내용을 늘린다.
+     * 긴 목록(MID_AD_MIN_ITEMS 이상)은 절반을 넘긴 계열 뒤에 애드핏 1번을 한 번 둔다.
+     */
+    static String familySections(List<BuildSite.Device> list) {
+        Map<String, List<BuildSite.Device>> families = new LinkedHashMap<>();
+        for (BuildSite.Device d : list) {
+            families.computeIfAbsent(d.familyKey, k -> new ArrayList<>()).add(d);
         }
-        int half = list.size() / 2;
-        return open + deviceLinks(list.subList(0, half), "../", 0) + "</ul>\n"
-                + Ads.adSlotHtml(1)
-                + open + deviceLinks(list.subList(half, list.size()), "../", 0) + "</ul>\n";
+        StringBuilder sb = new StringBuilder();
+        int shown = 0;
+        boolean adPlaced = list.size() < MID_AD_MIN_ITEMS;
+        for (Map.Entry<String, List<BuildSite.Device>> f : families.entrySet()) {
+            List<BuildSite.Device> members = f.getValue();
+            String key = BuildSite.esc(f.getKey());
+            List<String> names = new ArrayList<>();
+            for (BuildSite.Device d : members) {
+                if (!names.contains(d.name)) {
+                    names.add(d.name);
+                }
+            }
+            sb.append("<section class=\"family\">\n")
+              .append("  <h2>").append(key).append(members.size() > 1 ? ",x" : "").append(" 계열</h2>\n")
+              .append("  <p class=\"muted\">식별자 ").append(members.size()).append("개 — ")
+              .append(BuildSite.esc(String.join(", ", names))).append("</p>\n")
+              .append("  <ul class=\"related-list device-index\">\n")
+              .append(deviceLinks(members, "../", 0))
+              .append("  </ul>\n</section>\n");
+            shown += members.size();
+            if (!adPlaced && shown >= list.size() / 2) {
+                sb.append(Ads.adSlotHtml(1));
+                adPlaced = true;
+            }
+        }
+        return sb.toString();
+    }
+
+    /** content/hub-{slug}.html 의 카테고리 소개문. 파일이 없으면 빈 문자열. */
+    static String introduction(String category) throws IOException {
+        Path file = BuildSite.CONTENT.resolve("hub-" + slugOf(category) + ".html");
+        return Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
     }
 
     /** 카테고리 허브 페이지를 카테고리 수만큼 생성한다. */
@@ -168,7 +201,8 @@ final class CategoryPages {
                   + "<h1>" + category + " 기기 식별자 전체 목록</h1>\n"
                   + "<p class=\"lead\">" + category + " 계열 " + list.size()
                   + "종의 애플 모델 식별자와 기종명입니다. 항목을 누르면 상세 정보로 이동합니다.</p>\n"
-                  + deviceListWithMidAd(list)
+                  + introduction(e.getKey())
+                  + familySections(list)
                   + Ads.coupangHtml()
                   + Ads.adSlotHtml(2)
                   + SeoMarkup.script(SeoMarkup.breadcrumb(

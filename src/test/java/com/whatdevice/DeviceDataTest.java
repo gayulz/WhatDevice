@@ -16,20 +16,20 @@ public class DeviceDataTest {
                 Map.entry("iPhone19,3", "iPhone 18 Pro Max"),
                 Map.entry("iPhone19,4", "iPhone Duo"),
                 Map.entry("iPhone19,7", "iPhone 18 Pro Max"));
-        Map<String, String> data = BuildSite.loadMergedData();
+        Map<String, String> data = DeviceCatalog.loadMergedData();
         for (var entry : expected.entrySet()) {
             assert entry.getValue().equals(data.get(entry.getKey())) : entry.getKey();
         }
 
-        List<BuildSite.Device> devices = BuildSite.buildDevices(data);
+        List<BuildSite.Device> devices = DeviceCatalog.buildDevices(data);
         for (String identifier : expected.keySet()) {
             assert devices.stream().filter(d -> d.identifier.equals(identifier)).count() == 1
                     : identifier;
         }
         assert devices.stream().filter(d -> d.name.equals("iPhone 18 Pro Max")).count() == 2;
-        assert BuildSite.toKorean("iPhone Duo").equals("아이폰 듀오");
-        assert BuildSite.toKorean("iPhone Air").equals("아이폰 에어");
-        assert BuildSite.toKorean("iPhone 18 Pro Max").equals("아이폰 18 프로 맥스");
+        assert DeviceCatalog.toKorean("iPhone Duo").equals("아이폰 듀오");
+        assert DeviceCatalog.toKorean("iPhone Air").equals("아이폰 에어");
+        assert DeviceCatalog.toKorean("iPhone 18 Pro Max").equals("아이폰 18 프로 맥스");
         for (String identifier : List.of("i386", "x86_64", "arm64")) {
             assert "iPhone Simulator".equals(data.get(identifier)) : identifier;
         }
@@ -47,6 +47,7 @@ public class DeviceDataTest {
 
         verifyAds(devices);
         verifySeoMarkup(devices);
+        verifySeoFiles(devices);
     }
 
     /** 광고 마크업: 발급된 슬롯은 PC·모바일 쌍으로 나오고, 없는 슬롯은 빈 문자열이다. */
@@ -55,13 +56,16 @@ public class DeviceDataTest {
             assert count(Ads.adSlotHtml(slot), "class=\"kakao_ad_area") == 2 : "slot " + slot;
         }
         assert Ads.adSlotHtml(Ads.AD_SLOTS.length).isEmpty();
-        // 긴 목록은 가운데에서 끊어 광고 1개, 짧은 목록은 광고 없이 하나의 ul
+        // 허브는 계열별 소제목으로 나뉘고, 긴 목록에만 광고 1개가 들어간다.
         List<BuildSite.Device> longList = devices.subList(0, CategoryPages.MID_AD_MIN_ITEMS);
-        String split = CategoryPages.deviceListWithMidAd(longList);
-        assert count(split, "<ul ") == 2 && count(split, "kakao_ad_area") == 2 : "긴 허브 목록은 광고로 분할";
-        assert count(split, "<li>") == longList.size() : "분할해도 링크 수 유지";
-        String whole = CategoryPages.deviceListWithMidAd(devices.subList(0, CategoryPages.MID_AD_MIN_ITEMS - 1));
-        assert count(whole, "<ul ") == 1 && count(whole, "kakao_ad_area") == 0 : "짧은 허브 목록은 분할 안 함";
+        String split = CategoryPages.familySections(longList);
+        assert count(split, "kakao_ad_area") == 2 : "긴 허브 목록은 광고 1개(PC·모바일 쌍)";
+        assert count(split, "<li>") == longList.size() : "계열로 나눠도 링크 수 유지";
+        assert count(split, "<h2>") == longList.stream().map(d -> d.familyKey).distinct().count();
+        String whole = CategoryPages.familySections(devices.subList(0, CategoryPages.MID_AD_MIN_ITEMS - 1));
+        assert count(whole, "kakao_ad_area") == 0 : "짧은 허브 목록은 광고 없음";
+        String iphone = CategoryPages.familySections(devices.stream().filter(d -> d.category.equals("iPhone")).toList());
+        assert iphone.contains("<h2>iPhone15,x 계열</h2>") && iphone.contains("iPhone 14 Pro") : "계열 소제목";
         System.out.println("광고 슬롯·허브 목록 분할 검증 통과");
     }
 
@@ -90,6 +94,28 @@ public class DeviceDataTest {
         assert !SeoMarkup.description(simulator, 1).contains("null");
         assert !SeoMarkup.verificationMetas().contains("content=\"\"") : "빈 소유확인 코드로 메타가 나옴";
         System.out.println("JSON-LD·기기 상세 문구 검증 통과");
+    }
+
+    /** llms·CSV·사이트맵: 기기 수만큼 행이 있고, 콤마가 든 식별자가 CSV 칸을 깨지 않는다. */
+    private static void verifySeoFiles(List<BuildSite.Device> devices) throws Exception {
+        var byCategory = CategoryPages.groupByCategory(devices);
+        String csv = SeoFiles.csv(devices);
+        assert csv.lines().count() == devices.size() + 1 : "CSV 헤더 + 기기 수";
+        assert csv.contains("\"iPhone15,2\",\"iPhone 14 Pro\",\"아이폰 14 프로\",\"iPhone\"") : "CSV 인용";
+        String full = SeoFiles.llmsFull(byCategory);
+        assert count(full, "\n- ") == devices.size() : "llms-full 에 기기 전부";
+        assert full.contains("- iPhone15,2 — iPhone 14 Pro (아이폰 14 프로)");
+        String llms = SeoFiles.llms(byCategory);
+        assert llms.startsWith("# WhatDevice\n\n> ") && llms.contains("llms-full.txt") && llms.contains("iphone-model-check");
+        String sitemap = SeoFiles.sitemap(devices, byCategory);
+        assert count(sitemap, "<loc>") == 1 + ContentPages.PAGES.length + byCategory.size() + devices.size();
+        for (String[] p : ContentPages.PAGES) {
+            assert java.nio.file.Files.exists(BuildSite.CONTENT.resolve(p[3])) : p[3];
+        }
+        for (String category : byCategory.keySet()) {
+            assert !CategoryPages.introduction(category).isEmpty() : "허브 소개문 없음: " + category;
+        }
+        System.out.println("llms·CSV·사이트맵·허브 소개문 검증 통과");
     }
 
     private static int count(String text, String needle) {

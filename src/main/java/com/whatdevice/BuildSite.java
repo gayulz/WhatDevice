@@ -83,11 +83,11 @@ public class BuildSite {
         System.out.println("[WhatDevice] 빌드 시작");
 
         // 1) 데이터 로드
-        Map<String, String> merged = loadMergedData();
+        Map<String, String> merged = DeviceCatalog.loadMergedData();
         System.out.println("  - 병합된 전체 기기 수: " + merged.size());
 
         // 2) 범위 필터 + 슬러그/한글명/계열키 생성
-        List<Device> devices = buildDevices(merged);
+        List<Device> devices = DeviceCatalog.buildDevices(merged);
         System.out.println("  - 범위(" + String.join(", ", CATEGORIES) + ") 내 기기 수: " + devices.size());
 
         // 3) 같은 계열끼리 묶기 (관련 기기 링크용)
@@ -116,193 +116,14 @@ public class BuildSite {
         // 8-1) 카테고리 허브 페이지 생성 (크롤러가 기기 상세로 들어가는 유일한 경로)
         CategoryPages.generate(byCategory, layout);
 
-        // 9) 가이드 글 + 정책 페이지 생성 (content/ 의 본문을 layout 으로 감쌈)
-        generateContentPages(layout);
+        // 9) 가이드 글 + 정책 페이지 + 404 생성 (content/ 의 본문을 layout 으로 감쌈)
+        ContentPages.generate(layout);
+        ContentPages.generateNotFound(layout);
 
-        // 10) SEO 파일
-        writeSitemap(devices, byCategory);
-        writeRobots();
+        // 10) 크롤러·AI 용 파일 (sitemap, robots, llms.txt, llms-full.txt, devices.csv)
+        SeoFiles.writeAll(devices, byCategory);
 
         System.out.println("[WhatDevice] 빌드 완료 → dist/ (" + devices.size() + "개 기기 페이지)");
-    }
-
-    // ===================== 1. 데이터 로드/병합 =====================
-
-    /**
-     * 기기 데이터를 읽어 Map&lt;식별자, 기종명&gt; 으로 돌려준다.
-     *
-     * <p>adamawolf/3048717 gist 미러(data/devices.txt)에 없는 식별자만
-     * data/devices-supplement.txt에서 보강한다. 같은 식별자는 gist 값을 우선한다.
-     * 형식은 각 라인 "{identifier} : {name}" — 콜론 양쪽에 공백이 있다.
-     * 미러는 CI가 주 1회 자동 동기화하므로 보강 항목은 별도 파일에서 관리한다.
-     */
-    static Map<String, String> loadMergedData() throws IOException {
-        Map<String, String> merged = loadData(DATA.resolve("devices.txt"));
-        loadData(DATA.resolve("devices-supplement.txt")).forEach(merged::putIfAbsent);
-        return merged;
-    }
-
-    static Map<String, String> loadData(Path file) throws IOException {
-        Map<String, String> merged = new LinkedHashMap<>();
-        if (!Files.exists(file)) {
-            throw new IOException("필수 데이터 파일 없음: " + file.toAbsolutePath());
-        }
-        for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
-            String trimmed = line.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
-                continue;
-            }
-            int idx = trimmed.indexOf(" : ");
-            if (idx < 0) {
-                continue; // 형식이 깨진 라인은 건너뜀
-            }
-            String identifier = trimmed.substring(0, idx).trim();
-            String name = trimmed.substring(idx + 3).trim();
-            if (identifier.isEmpty() || name.isEmpty()) {
-                continue;
-            }
-            // 기존 호출자(buildDevices)는 entry.getKey()를 name, entry.getValue()를 identifier로 사용.
-            // 동일 이름이 여러 식별자에 대응하므로(예: iPhone Simulator 3개) Map 키를 식별자로 두면 안 됨.
-            // 키 충돌 방지를 위해 식별자를 키로 두는 대신 name+"\0"+identifier 같은 합성 키 사용 가능하지만,
-            // buildDevices는 entrySet 순회만 하므로 LinkedHashMap에 동일 이름을 안전하게 적재하려면
-            // 식별자를 키로 사용한다(고유). 대신 buildDevices에서 key=identifier, value=name 으로 해석하도록 수정.
-            merged.put(identifier, name);
-        }
-        return merged;
-    }
-
-
-    // ===================== 2. 기기 목록 가공 =====================
-
-    /**
-     * 병합 데이터에서 범위에 맞는 기기만 골라 Device 리스트를 만든다(정렬 포함).
-     * SPEC-DATA-001: gist 파서가 Map<identifier, name>을 반환하므로 키·값 해석을 식별자·이름으로 통일.
-     */
-    static List<Device> buildDevices(Map<String, String> merged) {
-        List<Device> list = new ArrayList<>();
-        for (Map.Entry<String, String> e : merged.entrySet()) {
-            String identifier = e.getKey();
-            String name = e.getValue();
-            if (!inScope(identifier)) {
-                continue;
-            }
-            String category = categoryOf(identifier);
-            String slug = toSlug(identifier);
-            String korean = toKorean(name);
-            String family = familyKeyOf(identifier);
-            list.add(new Device(name, identifier, slug, category, korean, family));
-        }
-        // 카테고리 → 계열 major → minor 순으로 내림차순(최신 기기가 위로).
-        list.sort(comparator());
-        return list;
-    }
-
-    /** 식별자가 우리가 다루는 카테고리(접두어)에 속하는지. */
-    static boolean inScope(String identifier) {
-        return categoryOf(identifier) != null;
-    }
-
-    /**
-     * 식별자의 카테고리(접두어)를 돌려준다. 범위 밖이면 null.
-     * SPEC-DATA-001: i386/x86_64/arm64 는 접두어 매칭 불가 → Simulator 카테고리로 명시 분기.
-     */
-    static String categoryOf(String identifier) {
-        if (identifier.equals("i386") || identifier.equals("x86_64") || identifier.equals("arm64")) {
-            return "Simulator";
-        }
-        for (String c : CATEGORIES) {
-            if (c.equals("Simulator")) {
-                continue; // 위 명시 분기에서 처리됨
-            }
-            if (identifier.startsWith(c)) {
-                return c;
-            }
-        }
-        return null;
-    }
-
-    /** 식별자 → 슬러그. 소문자화 후 영숫자 외 문자를 하이픈으로, 중복/양끝 하이픈 정리. */
-    static String toSlug(String identifier) {
-        String s = identifier.toLowerCase();
-        s = s.replaceAll("[^a-z0-9]+", "-");
-        s = s.replaceAll("(^-+)|(-+$)", "");
-        return s;
-    }
-
-    /** "iPhone15,2" → 계열키 "iPhone15" (콤마 앞부분). */
-    static String familyKeyOf(String identifier) {
-        int comma = identifier.indexOf(',');
-        return comma >= 0 ? identifier.substring(0, comma) : identifier;
-    }
-
-    // 영문 토큰 → 한글 표기 (검색·참고용 자동 생성. 완벽 번역이 아니라 best-effort)
-    private static final String[][] KO_TOKENS = {
-            // SPEC-DATA-001: 긴 토큰 먼저 매칭 (Apple Watch가 Watch보다 우선, iPod touch가 iPod보다 우선).
-            {"Apple Watch", "애플 워치"},
-            {"iPod touch", "아이팟 터치"},
-            {"iPhone Simulator", "아이폰 시뮬레이터"},
-            {"Pro Max", "프로 맥스"},
-            // 기본 카테고리
-            {"iPhone", "아이폰"},
-            {"iPad", "아이패드"},
-            {"iPod", "아이팟"},
-            {"Watch", "워치"},
-            {"Simulator", "시뮬레이터"},
-            // 모델 수식어
-            {"Pro", "프로"},
-            {"Plus", "플러스"},
-            {"Max", "맥스"},
-            {"mini", "미니"},
-            {"Mini", "미니"},
-            {"Air", "에어"},
-            {"Duo", "듀오"},
-            {"Ultra", "울트라"},
-            {"Series", "시리즈"},
-            // 일반 토큰
-            {"inch", "인치"},
-            {"generation", "세대"},
-            {"Wi-Fi", "와이파이"},
-            {"Cellular", "셀룰러"},
-            {"case", "케이스"},
-    };
-
-    /** 기종명을 한글 표기로 치환(부분 일치 토큰 교체). 숫자/괄호 등은 그대로 둔다. */
-    static String toKorean(String name) {
-        String s = name;
-        for (String[] t : KO_TOKENS) {
-            s = s.replace(t[0], t[1]);
-        }
-        return s;
-    }
-
-    /** 정렬 비교자: 카테고리 오름차순, 그 안에서 계열 major·minor 내림차순(최신 우선). */
-    static Comparator<Device> comparator() {
-        return (a, b) -> {
-            int c = a.category.compareTo(b.category);
-            if (c != 0) {
-                return c;
-            }
-            int[] na = majorMinor(a.identifier);
-            int[] nb = majorMinor(b.identifier);
-            if (na[0] != nb[0]) {
-                return Integer.compare(nb[0], na[0]); // major 내림차순
-            }
-            if (na[1] != nb[1]) {
-                return Integer.compare(nb[1], na[1]); // minor 내림차순
-            }
-            return a.name.compareTo(b.name);
-        };
-    }
-
-    private static final Pattern MAJOR_MINOR = Pattern.compile("(\\d+),(\\d+)");
-
-    /** "iPhone15,2" → [15, 2]. 못 찾으면 [0,0]. */
-    static int[] majorMinor(String identifier) {
-        Matcher m = MAJOR_MINOR.matcher(identifier);
-        if (m.find()) {
-            return new int[]{Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))};
-        }
-        return new int[]{0, 0};
     }
 
     // ===================== 3. 계열 묶기 =====================
@@ -459,95 +280,6 @@ public class BuildSite {
 
         String html = renderLayout(layout, "", title, desc, canonical, main, scripts);
         Files.write(DIST.resolve("index.html"), html.getBytes(StandardCharsets.UTF_8));
-    }
-
-    // ===================== 9. 가이드/정책 페이지 =====================
-
-    /**
-     * content/ 디렉토리의 본문 HTML 조각들을 layout 으로 감싸 정적 페이지로 만든다.
-     * 각 항목: {출력경로, 제목, 설명, 본문파일}.
-     */
-    static void generateContentPages(String layout) throws IOException {
-        // {출력 상대경로, BASE, 제목, 설명, content 파일명}
-        String[][] pages = {
-            {"guide/identifier-basics.html", "../", "애플 기기 식별자(모델 코드)란 무엇인가",
-                    "iPhone15,2 같은 애플 기기 식별자가 무엇이고 어디에 쓰이는지 쉽게 설명합니다.",
-                    "guide-identifier-basics.html"},
-            {"guide/find-from-logs.html", "../", "크래시 로그·애널리틱스에서 기기 모델 확인하는 법",
-                    "크래시 로그나 애널리틱스에 찍힌 기기 식별자로 실제 기종을 알아내는 방법을 안내합니다.",
-                    "guide-find-from-logs.html"},
-            {"policy/terms.html", "../", "이용약관",
-                    SITE_NAME + " 이용약관입니다.", "policy-terms.html"},
-            {"policy/privacy.html", "../", "개인정보처리방침",
-                    SITE_NAME + " 개인정보처리방침입니다.", "policy-privacy.html"},
-            {"policy/contact.html", "../", "문의",
-                    SITE_NAME + " 문의 안내입니다.", "policy-contact.html"},
-        };
-
-        for (String[] p : pages) {
-            String body = readContent(p[4]);
-            // 본문 안의 토큰 치환(이메일/사이트명/BASE)
-            body = body
-                    .replace("{{BASE}}", p[1])
-                    .replace("{{EMAIL}}", CONTACT_EMAIL)
-                    .replace("{{SITE_NAME}}", SITE_NAME);
-            // 가이드 페이지에만 본문 끝에 광고 슬롯 추가 (정책 페이지는 광고 미노출 — 신뢰도 보호)
-            if (p[0].startsWith("guide/")) {
-                body = Ads.adSlotHtml(0) + "\n" + body + "\n" + Ads.adSlotHtml(2);
-            }
-            // 본문 중간의 {{COUPANG}}·{{AD_MID}} 토큰 치환. 정책 페이지에는 토큰이 없어 그대로 통과한다.
-            body = body.replace("{{COUPANG}}", p[0].startsWith("guide/") ? Ads.coupangHtml() : "")
-                       .replace("{{AD_MID}}", p[0].startsWith("guide/") ? Ads.adSlotHtml(1) : "");
-            String title = p[2] + " | " + SITE_NAME;
-            String canonical = SITE_URL + "/" + p[0];
-            if (p[0].startsWith("guide/")) {
-                body += SeoMarkup.script(SeoMarkup.breadcrumb(new String[]{"홈", SITE_URL + "/"},
-                        new String[]{p[2], canonical}));
-            }
-            String html = renderLayout(layout, p[1], title, p[3], canonical, body, "");
-            Path out = DIST.resolve(p[0]);
-            Files.createDirectories(out.getParent());
-            Files.write(out, html.getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    // ===================== 10. SEO 파일 =====================
-
-    /** 전 페이지 URL 을 담은 sitemap.xml 생성. */
-    static void writeSitemap(List<Device> devices, Map<String, List<Device>> byCategory)
-            throws IOException {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
-        // 고정 페이지
-        appendUrl(sb, SITE_URL + "/");
-        appendUrl(sb, SITE_URL + "/guide/identifier-basics.html");
-        appendUrl(sb, SITE_URL + "/guide/find-from-logs.html");
-        appendUrl(sb, SITE_URL + "/policy/terms.html");
-        appendUrl(sb, SITE_URL + "/policy/privacy.html");
-        appendUrl(sb, SITE_URL + "/policy/contact.html");
-        // 카테고리 허브
-        for (String loc : CategoryPages.sitemapUrls(byCategory)) {
-            appendUrl(sb, loc);
-        }
-        // 기기 페이지
-        for (Device d : devices) {
-            appendUrl(sb, SITE_URL + "/device/" + d.slug + ".html");
-        }
-        sb.append("</urlset>\n");
-        Files.write(DIST.resolve("sitemap.xml"), sb.toString().getBytes(StandardCharsets.UTF_8));
-    }
-
-    static void appendUrl(StringBuilder sb, String loc) {
-        sb.append("  <url><loc>").append(esc(loc)).append("</loc></url>\n");
-    }
-
-    /** robots.txt 생성 (sitemap 위치 명시). */
-    static void writeRobots() throws IOException {
-        String txt = "User-agent: *\n"
-                + "Allow: /\n\n"
-                + "Sitemap: " + SITE_URL + "/sitemap.xml\n";
-        Files.write(DIST.resolve("robots.txt"), txt.getBytes(StandardCharsets.UTF_8));
     }
 
     // ===================== 공통 유틸 =====================

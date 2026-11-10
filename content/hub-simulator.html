@@ -1,0 +1,9 @@
+<section class="content" aria-labelledby="hub-guide">
+  <h2 id="hub-guide">시뮬레이터 식별자란</h2>
+  <p><code class="mono">i386</code>, <code class="mono">x86_64</code>, <code class="mono">arm64</code>는 실제 기기가 아니라
+     Xcode의 iOS 시뮬레이터에서 앱을 실행했을 때 나오는 값입니다. 시뮬레이터는 Mac의 CPU 아키텍처를 그대로 보고하므로,
+     인텔 Mac에서는 <code class="mono">x86_64</code>, Apple silicon Mac에서는 <code class="mono">arm64</code>가 나옵니다.
+     <code class="mono">i386</code>은 32비트 인텔 시뮬레이터 값입니다.</p>
+  <p>애널리틱스나 크래시 로그에 이 값이 섞여 있다면 개발·테스트 중에 생긴 기록일 가능성이 큽니다.
+     실제 사용자 기기 통계를 볼 때는 따로 걸러 내세요.</p>
+</section>
