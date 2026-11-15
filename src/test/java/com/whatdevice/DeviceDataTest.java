@@ -1,5 +1,7 @@
 package com.whatdevice;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -21,11 +23,50 @@ public class DeviceDataTest {
             assert entry.getValue().equals(data.get(entry.getKey())) : entry.getKey();
         }
 
+        Map<String, String> newDevices = Map.ofEntries(
+                Map.entry("iPad19,1", "iPad mini (A20 Pro) (Wi-Fi)"),
+                Map.entry("iPad19,2", "iPad mini (A20 Pro) (Wi-Fi + Cellular)"),
+                Map.entry("iPad17,1", "iPad Pro 11-inch (M5) (Wi-Fi)"),
+                Map.entry("iPad17,2", "iPad Pro 11-inch (M5) (Wi-Fi + Cellular)"),
+                Map.entry("iPad17,3", "iPad Pro 13-inch (M5) (Wi-Fi)"),
+                Map.entry("iPad17,4", "iPad Pro 13-inch (M5) (Wi-Fi + Cellular)"),
+                Map.entry("Watch8,1", "Apple Watch Ultra 4 (GPS + Cellular)"),
+                Map.entry("Watch8,2", "Apple Watch Series 12 (GPS)"),
+                Map.entry("Watch8,3", "Apple Watch Series 12 (GPS)"),
+                Map.entry("Watch8,4", "Apple Watch Series 12 (GPS + Cellular)"),
+                Map.entry("Watch8,5", "Apple Watch Series 12 (GPS + Cellular)"));
+        Map<String, String> correctedIpads = Map.ofEntries(
+                Map.entry("iPad13,4", "iPad Pro 11-inch (3rd generation)"),
+                Map.entry("iPad13,5", "iPad Pro 11-inch (3rd generation)"),
+                Map.entry("iPad13,6", "iPad Pro 11-inch (3rd generation)"),
+                Map.entry("iPad13,7", "iPad Pro 11-inch (3rd generation)"),
+                Map.entry("iPad16,5", "iPad Pro 13-inch (M4) (Wi-Fi)"),
+                Map.entry("iPad16,6", "iPad Pro 13-inch (M4) (Wi-Fi + Cellular)"));
+        for (var entry : newDevices.entrySet()) {
+            assert entry.getValue().equals(data.get(entry.getKey())) : entry.getKey();
+        }
+        for (var entry : correctedIpads.entrySet()) {
+            assert entry.getValue().equals(data.get(entry.getKey())) : entry.getKey();
+        }
+
         List<BuildSite.Device> devices = DeviceCatalog.buildDevices(data);
-        for (String identifier : expected.keySet()) {
+        for (String identifier : java.util.stream.Stream.concat(
+                java.util.stream.Stream.concat(expected.keySet().stream(), newDevices.keySet().stream()),
+                correctedIpads.keySet().stream()).toList()) {
             assert devices.stream().filter(d -> d.identifier.equals(identifier)).count() == 1
                     : identifier;
         }
+        for (var entry : newDevices.entrySet()) {
+            assert entry.getValue().equals(devices.stream()
+                    .filter(d -> d.identifier.equals(entry.getKey())).findFirst().orElseThrow().name)
+                    : entry.getKey();
+        }
+        for (var entry : correctedIpads.entrySet()) {
+            assert entry.getValue().equals(devices.stream()
+                    .filter(d -> d.identifier.equals(entry.getKey())).findFirst().orElseThrow().name)
+                    : entry.getKey();
+        }
+        verifyIpadCorrectionMerge(correctedIpads);
         assert devices.stream().filter(d -> d.name.equals("iPhone 18 Pro Max")).count() == 2;
         assert DeviceCatalog.toKorean("iPhone Duo").equals("아이폰 듀오");
         assert DeviceCatalog.toKorean("iPhone Air").equals("아이폰 에어");
@@ -54,11 +95,71 @@ public class DeviceDataTest {
         assert DeviceCatalog.toKorean("iMac (24-inch, M1, 2021)").startsWith("아이맥 ");
         assert DeviceCatalog.toKorean("Mac Studio (2022)").equals("맥 스튜디오 (2022)");
         assert DeviceCatalog.toKorean("Mac mini (M1, 2020)").equals("맥 미니 (M1, 2020)");
-        System.out.println("최신 iPhone 식별자 10개·지역별 중복 모델·한글 표기 검증 통과");
+        System.out.println("최신 iPhone·iPad·Apple Watch 식별자·iPad 오기 교정·중복 모델·한글 표기 검증 통과");
 
         verifyAds(devices);
         verifySeoMarkup(devices);
         verifySeoFiles(devices);
+    }
+
+    /** 재동기화로 같은 오기가 돌아올 때만 교정하고, 이후 원본 값과 다른 식별자는 보존한다. */
+    private static void verifyIpadCorrectionMerge(Map<String, String> correctedIpads) throws Exception {
+        Path temp = Files.createTempDirectory("whatdevice-data-test-");
+        Path mirror = temp.resolve("devices.txt");
+        Path supplement = temp.resolve("devices-supplement.txt");
+        try {
+            Files.writeString(mirror, """
+                    iPad13,4 : iPad Pro 11 inch 5th Gen
+                    iPad13,5 : iPad Pro 11 inch 5th Gen
+                    iPad13,6 : iPad Pro 11 inch 5th Gen
+                    iPad13,7 : iPad Pro 11 inch 5th Gen
+                    iPad16,5 : iPad Pro 12.9 inch 7th Gen (WiFi)
+                    iPad16,6 : iPad Pro 12.9 inch 7th Gen (WiFi+Cellular)
+                    iPad13,8 : iPad Pro 12.9 inch 5th Gen
+                    iPad14,8 : iPad Air 11 inch 6th Gen (WiFi)
+                    """);
+            Files.writeString(supplement, """
+                    iPad13,8 : supplement must not replace the mirror
+                    iPad19,1 : iPad mini (A20 Pro) (Wi-Fi)
+                    """);
+            Map<String, String> stale = DeviceCatalog.loadMergedData(mirror, supplement);
+            for (var entry : correctedIpads.entrySet()) {
+                assert entry.getValue().equals(stale.get(entry.getKey())) : entry.getKey();
+            }
+            assert "iPad Pro 12.9 inch 5th Gen".equals(stale.get("iPad13,8"));
+            assert "iPad Air 11 inch 6th Gen (WiFi)".equals(stale.get("iPad14,8"));
+            assert "iPad mini (A20 Pro) (Wi-Fi)".equals(stale.get("iPad19,1"));
+            List<BuildSite.Device> staleDevices = DeviceCatalog.buildDevices(stale);
+            for (String identifier : stale.keySet()) {
+                assert staleDevices.stream().filter(d -> d.identifier.equals(identifier)).count() == 1
+                        : identifier;
+            }
+
+            Files.writeString(mirror, """
+                    iPad13,4 : iPad Pro 11-inch (3rd generation)
+                    iPad13,5 : iPad Pro 11-inch (3rd generation)
+                    iPad13,6 : iPad Pro 11-inch (3rd generation)
+                    iPad13,7 : iPad Pro 11-inch (3rd generation)
+                    iPad16,5 : iPad Pro 13-inch (M4) (Wi-Fi)
+                    iPad16,6 : iPad Pro 13-inch (M4) (Wi-Fi + Cellular)
+                    iPad13,8 : mirror's unrelated value
+                    iPad14,8 : iPad Air 11 inch 6th Gen (WiFi)
+                    """);
+            Map<String, String> refreshed = DeviceCatalog.loadMergedData(mirror, supplement);
+            for (var entry : correctedIpads.entrySet()) {
+                assert entry.getValue().equals(refreshed.get(entry.getKey())) : entry.getKey();
+            }
+            assert "mirror's unrelated value".equals(refreshed.get("iPad13,8"));
+            assert "iPad Air 11 inch 6th Gen (WiFi)".equals(refreshed.get("iPad14,8"));
+
+            Files.writeString(mirror, "iPad13,4 : upstream alternate label\n");
+            assert "upstream alternate label".equals(
+                    DeviceCatalog.loadMergedData(mirror, supplement).get("iPad13,4"));
+        } finally {
+            Files.deleteIfExists(mirror);
+            Files.deleteIfExists(supplement);
+            Files.deleteIfExists(temp);
+        }
     }
 
     /** 광고 마크업: 발급된 슬롯은 PC·모바일 쌍으로 나오고, 없는 슬롯은 빈 문자열이다. */

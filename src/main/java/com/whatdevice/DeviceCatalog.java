@@ -32,8 +32,20 @@ final class DeviceCatalog {
      * 미러는 CI가 주 1회 자동 동기화하므로 보강 항목은 별도 파일에서 관리한다.
      */
     static Map<String, String> loadMergedData() throws IOException {
-        Map<String, String> merged = loadData(BuildSite.DATA.resolve("devices.txt"));
-        loadData(BuildSite.DATA.resolve("devices-supplement.txt")).forEach(merged::putIfAbsent);
+        return loadMergedData(BuildSite.DATA.resolve("devices.txt"),
+                BuildSite.DATA.resolve("devices-supplement.txt"));
+    }
+
+    static Map<String, String> loadMergedData(Path mirrorFile, Path supplementFile) throws IOException {
+        Map<String, String> merged = loadData(mirrorFile);
+        // Reapply only these confirmed stale source labels; preserve any later mirror value.
+        merged.replace("iPad13,4", "iPad Pro 11 inch 5th Gen", "iPad Pro 11-inch (3rd generation)");
+        merged.replace("iPad13,5", "iPad Pro 11 inch 5th Gen", "iPad Pro 11-inch (3rd generation)");
+        merged.replace("iPad13,6", "iPad Pro 11 inch 5th Gen", "iPad Pro 11-inch (3rd generation)");
+        merged.replace("iPad13,7", "iPad Pro 11 inch 5th Gen", "iPad Pro 11-inch (3rd generation)");
+        merged.replace("iPad16,5", "iPad Pro 12.9 inch 7th Gen (WiFi)", "iPad Pro 13-inch (M4) (Wi-Fi)");
+        merged.replace("iPad16,6", "iPad Pro 12.9 inch 7th Gen (WiFi+Cellular)", "iPad Pro 13-inch (M4) (Wi-Fi + Cellular)");
+        loadData(supplementFile).forEach(merged::putIfAbsent);
         return merged;
     }
 

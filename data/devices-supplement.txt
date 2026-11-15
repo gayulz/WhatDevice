@@ -8,6 +8,24 @@ iPhone19,3 : iPhone 18 Pro Max
 iPhone19,4 : iPhone Duo
 iPhone19,7 : iPhone 18 Pro Max
 
+# iPad 및 Apple Watch 식별자와 출시일: https://appledb.dev/device-selection/iPads.html
+# iPad 제품명·출시·기술 사양: https://www.apple.com/newsroom/2025/10/new-ipad-pro-14-inch-macbook-pro-and-apple-vision-pro-now-available/ ; https://images.apple.com/newsroom/2026/10/apple-gives-ipad-mini-its-biggest-update-ever/ ; https://support.apple.com/en-us/149482 ; https://support.apple.com/en-us/108043
+# iPad 연결 방식·식별자 대조: https://theapplewiki.com/wiki/User%3ANicolas17/IPad_Pro_%28M5%29 ; https://theapplewiki.com/wiki/IPad19%2C1
+# Apple Watch 식별자와 연결 방식: https://appledb.dev/device-selection/Apple-Watch.html ; https://cpeoples.github.io/signet/watch/
+# Apple Watch 제품명·출시·모델 확인: https://www.apple.com/newsroom/2026/09/apple-unveils-apple-watch-ultra-4/ ; https://www.apple.com/newsroom/2026/09/introducing-apple-watch-series-12-with-the-all-new-health-sensing-system/ ; https://support.apple.com/en-us/108056
+# 확인일 2026-11-15
+iPad19,1 : iPad mini (A20 Pro) (Wi-Fi)
+iPad19,2 : iPad mini (A20 Pro) (Wi-Fi + Cellular)
+iPad17,1 : iPad Pro 11-inch (M5) (Wi-Fi)
+iPad17,2 : iPad Pro 11-inch (M5) (Wi-Fi + Cellular)
+iPad17,3 : iPad Pro 13-inch (M5) (Wi-Fi)
+iPad17,4 : iPad Pro 13-inch (M5) (Wi-Fi + Cellular)
+Watch8,1 : Apple Watch Ultra 4 (GPS + Cellular)
+Watch8,2 : Apple Watch Series 12 (GPS)
+Watch8,3 : Apple Watch Series 12 (GPS)
+Watch8,4 : Apple Watch Series 12 (GPS + Cellular)
+Watch8,5 : Apple Watch Series 12 (GPS + Cellular)
+
 # Mac — 원본 gist 에 Mac 이 없어 Apple 지원 문서의 "Model Identifier" 를 옮겼다. 확인일 2026-11-10
 # 한 식별자를 여러 판매 모델이 공유하면 문서 순서(최신 우선)대로 " / " 로 이었다.
 # https://support.apple.com/en-us/108052 (MacBook Pro)
